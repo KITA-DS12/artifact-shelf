@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { Artifact } from "../types/artifact";
 import { readArtifactContent } from "../lib/library";
 import { MarkdownView } from "./MarkdownView";
+import { HtmlView } from "./HtmlView";
 import { generateToc, type TocEntry } from "../lib/toc";
 
 type Props = {
@@ -92,10 +93,8 @@ export function ArtifactDetail({ artifact, onBack }: Props) {
           {state.kind === "ready" && artifact.fileType === "markdown" && (
             <MarkdownView content={state.content} />
           )}
-          {state.kind === "ready" && artifact.fileType !== "markdown" && (
-            <p className="muted">
-              この形式のプレビューは Issue #6 で実装されます。
-            </p>
+          {state.kind === "ready" && artifact.fileType === "html" && (
+            <HtmlView content={state.content} />
           )}
         </div>
       </div>
