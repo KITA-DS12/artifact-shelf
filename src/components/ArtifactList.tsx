@@ -1,5 +1,4 @@
 import type { Artifact } from "../types/artifact";
-import { sortByUnreadThenGeneratedDesc } from "../lib/sort";
 import { ArtifactCard } from "./ArtifactCard";
 
 type Props = {
@@ -11,19 +10,17 @@ export function ArtifactList({ artifacts, onSelect }: Props) {
   if (artifacts.length === 0) {
     return (
       <section className="empty-state">
-        <p>まだ何も登録されていません。</p>
+        <p>条件に合う Artifact がありません。</p>
         <p className="muted">
-          「インポート」ボタンから .md / .mdx / .html / .htm を選んで登録してください。
+          検索条件を変えるか、「インポート」ボタンから新しい Artifact を登録してください。
         </p>
       </section>
     );
   }
 
-  const sorted = sortByUnreadThenGeneratedDesc(artifacts);
-
   return (
     <section className="artifact-list" aria-label="Artifact 一覧">
-      {sorted.map((a) => (
+      {artifacts.map((a) => (
         <ArtifactCard key={a.id} artifact={a} onClick={onSelect} />
       ))}
     </section>

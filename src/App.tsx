@@ -1,15 +1,25 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ImportButton } from "./components/ImportButton";
 import { ArtifactList } from "./components/ArtifactList";
 import { ArtifactDetail } from "./components/ArtifactDetail";
+import { LibraryToolbar } from "./components/LibraryToolbar";
 import { emptyLibrary, loadLibrary } from "./lib/library";
+import { applyFilter, collectAllTags } from "./lib/filter";
+import { sortArtifacts } from "./lib/sort";
 import type { Library } from "./types/artifact";
+import {
+  DEFAULT_FILTER,
+  type LibraryFilter,
+  type SortKey,
+} from "./types/filter";
 import "./App.css";
 
 function App() {
   const [library, setLibrary] = useState<Library>(emptyLibrary);
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [filter, setFilter] = useState<LibraryFilter>(DEFAULT_FILTER);
+  const [sortKey, setSortKey] = useState<SortKey>("unread-then-generated-desc");
 
   const reload = useCallback(async () => {
     try {
@@ -24,6 +34,16 @@ function App() {
   useEffect(() => {
     void reload();
   }, [reload]);
+
+  const availableTags = useMemo(
+    () => collectAllTags(library.artifacts),
+    [library.artifacts],
+  );
+
+  const filtered = useMemo(
+    () => sortArtifacts(applyFilter(library.artifacts, filter), sortKey),
+    [library.artifacts, filter, sortKey],
+  );
 
   const selected =
     selectedId !== null
@@ -58,8 +78,17 @@ function App() {
           ライブラリの読み込みに失敗しました: {error}
         </div>
       )}
+      <LibraryToolbar
+        filter={filter}
+        onFilterChange={setFilter}
+        sortKey={sortKey}
+        onSortChange={setSortKey}
+        availableTags={availableTags}
+        totalCount={library.artifacts.length}
+        matchedCount={filtered.length}
+      />
       <ArtifactList
-        artifacts={library.artifacts}
+        artifacts={filtered}
         onSelect={(a) => setSelectedId(a.id)}
       />
     </main>
