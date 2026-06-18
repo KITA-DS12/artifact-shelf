@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { importArtifacts } from "../lib/library";
+import { describeImportResult } from "../lib/import-message";
 import type { ImportResult } from "../types/import";
 
 type Props = {
@@ -31,15 +32,7 @@ export function ImportButton({ onImported }: Props) {
       }
       const paths = Array.isArray(selected) ? selected : [selected];
       const result = await importArtifacts(paths);
-      const parts: string[] = [];
-      parts.push(`${result.added.length} 件を追加`);
-      if (result.skippedDuplicates.length > 0) {
-        parts.push(`重複 ${result.skippedDuplicates.length} 件をスキップ`);
-      }
-      if (result.skippedUnsupported.length > 0) {
-        parts.push(`未対応 ${result.skippedUnsupported.length} 件をスキップ`);
-      }
-      setMessage(parts.join(" / "));
+      setMessage(describeImportResult(result));
       onImported?.(result);
     } catch (err) {
       setMessage(`インポートに失敗しました: ${String(err)}`);
