@@ -12,9 +12,17 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
   open: vi.fn(),
 }));
 
+function mockLibrary(library: { version: number; artifacts: unknown[] }) {
+  invokeMock.mockImplementation(async (cmd: string) => {
+    if (cmd === "load_library") return library;
+    if (cmd === "check_missing_artifacts") return [];
+    return undefined;
+  });
+}
+
 beforeEach(() => {
   invokeMock.mockReset();
-  invokeMock.mockResolvedValue({ version: 1, artifacts: [] });
+  mockLibrary({ version: 1, artifacts: [] });
 });
 
 describe("App", () => {
@@ -25,10 +33,13 @@ describe("App", () => {
     ).toBeInTheDocument();
   });
 
-  it("起動時に load_library を呼び出す", async () => {
+  it("起動時に load_library と check_missing_artifacts を呼び出す", async () => {
     render(<App />);
     await waitFor(() => {
       expect(invokeMock).toHaveBeenCalledWith("load_library");
+    });
+    await waitFor(() => {
+      expect(invokeMock).toHaveBeenCalledWith("check_missing_artifacts");
     });
   });
 
@@ -40,8 +51,7 @@ describe("App", () => {
   });
 
   it("ライブラリ取得済みなら artifact のタイトルを表示する", async () => {
-    invokeMock.mockReset();
-    invokeMock.mockResolvedValue({
+    mockLibrary({
       version: 1,
       artifacts: [
         {

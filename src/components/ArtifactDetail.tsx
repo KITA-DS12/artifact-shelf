@@ -1,7 +1,15 @@
 import { useEffect, useState } from "react";
+import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import type { Artifact } from "../types/artifact";
 import type { ArtifactUpdate } from "../types/edit";
-import { readArtifactContent, updateArtifact } from "../lib/library";
+import {
+  readArtifactContent,
+  updateArtifact,
+  openInFinder,
+  openWithDefault,
+  copyToClipboard,
+  relinkArtifact,
+} from "../lib/library";
 import { MarkdownView } from "./MarkdownView";
 import { HtmlView } from "./HtmlView";
 import { ArtifactEditForm } from "./ArtifactEditForm";
@@ -9,6 +17,7 @@ import { generateToc, type TocEntry } from "../lib/toc";
 
 type Props = {
   artifact: Artifact;
+  missing?: boolean;
   onBack: () => void;
   onUpdated?: (updated: Artifact) => void;
 };
@@ -16,13 +25,24 @@ type Props = {
 type LoadState =
   | { kind: "loading" }
   | { kind: "ready"; content: string }
-  | { kind: "error"; message: string };
+  | { kind: "error"; message: string }
+  | { kind: "missing" };
 
-export function ArtifactDetail({ artifact, onBack, onUpdated }: Props) {
+export function ArtifactDetail({
+  artifact,
+  missing,
+  onBack,
+  onUpdated,
+}: Props) {
   const [state, setState] = useState<LoadState>({ kind: "loading" });
   const [editing, setEditing] = useState(false);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
 
   useEffect(() => {
+    if (missing) {
+      setState({ kind: "missing" });
+      return;
+    }
     let cancelled = false;
     setState({ kind: "loading" });
     readArtifactContent(artifact.id)
@@ -31,12 +51,15 @@ export function ArtifactDetail({ artifact, onBack, onUpdated }: Props) {
       })
       .catch((err) => {
         if (!cancelled)
-          setState({ kind: "error", message: String(err) });
+          setState({
+            kind: "error",
+            message: `読み込みに失敗しました: ${String(err)}`,
+          });
       });
     return () => {
       cancelled = true;
     };
-  }, [artifact.id]);
+  }, [artifact.id, missing]);
 
   const toc: TocEntry[] =
     state.kind === "ready" && artifact.fileType === "markdown"
@@ -47,6 +70,38 @@ export function ArtifactDetail({ artifact, onBack, onUpdated }: Props) {
     const updated = await updateArtifact(artifact.id, update);
     setEditing(false);
     onUpdated?.(updated);
+  }
+
+  async function withFeedback(
+    label: string,
+    action: () => Promise<void>,
+  ): Promise<void> {
+    try {
+      await action();
+      setActionMessage(`${label}しました`);
+    } catch (err) {
+      setActionMessage(`${label}に失敗しました: ${String(err)}`);
+    }
+  }
+
+  async function handleRelink() {
+    const picked = await openDialog({
+      multiple: false,
+      filters: [
+        {
+          name: "Markdown / HTML",
+          extensions: ["md", "mdx", "html", "htm"],
+        },
+      ],
+    });
+    if (!picked || Array.isArray(picked)) return;
+    try {
+      const updated = await relinkArtifact(artifact.id, picked);
+      onUpdated?.(updated);
+      setActionMessage("再紐付けしました");
+    } catch (err) {
+      setActionMessage(`再紐付けに失敗しました: ${String(err)}`);
+    }
   }
 
   return (
@@ -72,9 +127,14 @@ export function ArtifactDetail({ artifact, onBack, onUpdated }: Props) {
                   ★
                 </span>
               )}
-              <span className={`read-pill ${artifact.isRead ? "is-read" : "is-unread"}`}>
+              <span
+                className={`read-pill ${artifact.isRead ? "is-read" : "is-unread"}`}
+              >
                 {artifact.isRead ? "既読" : "未読"}
               </span>
+              {missing && (
+                <span className="missing-badge">ファイル無</span>
+              )}
             </div>
             {artifact.tags.length > 0 && (
               <ul className="detail-tags" aria-label="タグ">
@@ -84,14 +144,57 @@ export function ArtifactDetail({ artifact, onBack, onUpdated }: Props) {
               </ul>
             )}
             {artifact.note && <p className="detail-note">{artifact.note}</p>}
+            <p className="muted detail-path" title={artifact.sourcePath}>
+              {artifact.sourcePath}
+            </p>
+            {missing && (
+              <div className="missing-banner" role="alert">
+                元ファイルが見つかりません。移動またはリネームされた可能性があります。
+              </div>
+            )}
             <div className="detail-actions">
               <button type="button" onClick={() => setEditing(true)}>
                 編集
               </button>
-              <button type="button" disabled title="後続 Issue で実装">
-                元ファイルを開く
+              <button
+                type="button"
+                disabled={missing}
+                onClick={() =>
+                  void withFeedback("Finder で表示", () =>
+                    openInFinder(artifact.sourcePath),
+                  )
+                }
+              >
+                Finder で表示
+              </button>
+              <button
+                type="button"
+                disabled={missing}
+                onClick={() =>
+                  void withFeedback("規定アプリで開く", () =>
+                    openWithDefault(artifact.sourcePath),
+                  )
+                }
+              >
+                規定アプリで開く
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  void withFeedback("パスをコピー", () =>
+                    copyToClipboard(artifact.sourcePath),
+                  )
+                }
+              >
+                パスをコピー
+              </button>
+              <button type="button" onClick={() => void handleRelink()}>
+                再紐付け…
               </button>
             </div>
+            {actionMessage && (
+              <p className="muted action-message">{actionMessage}</p>
+            )}
           </>
         ) : (
           <ArtifactEditForm
@@ -117,9 +220,14 @@ export function ArtifactDetail({ artifact, onBack, onUpdated }: Props) {
         )}
         <div className="detail-content">
           {state.kind === "loading" && <p className="muted">読み込み中…</p>}
+          {state.kind === "missing" && (
+            <p className="muted">
+              元ファイルが無いためプレビューできません。
+            </p>
+          )}
           {state.kind === "error" && (
             <p className="error-banner" role="alert">
-              読み込みに失敗しました: {state.message}
+              {state.message}
             </p>
           )}
           {state.kind === "ready" && artifact.fileType === "markdown" && (

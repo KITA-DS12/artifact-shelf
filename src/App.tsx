@@ -3,7 +3,11 @@ import { ImportButton } from "./components/ImportButton";
 import { ArtifactList } from "./components/ArtifactList";
 import { ArtifactDetail } from "./components/ArtifactDetail";
 import { LibraryToolbar } from "./components/LibraryToolbar";
-import { emptyLibrary, loadLibrary } from "./lib/library";
+import {
+  checkMissingArtifacts,
+  emptyLibrary,
+  loadLibrary,
+} from "./lib/library";
 import { applyFilter, collectAllTags } from "./lib/filter";
 import { sortArtifacts } from "./lib/sort";
 import type { Library } from "./types/artifact";
@@ -20,12 +24,21 @@ function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<LibraryFilter>(DEFAULT_FILTER);
   const [sortKey, setSortKey] = useState<SortKey>("unread-then-generated-desc");
+  const [missingIds, setMissingIds] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
 
   const reload = useCallback(async () => {
     try {
       const next = await loadLibrary();
       setLibrary(next);
       setError(null);
+      try {
+        const missing = await checkMissingArtifacts();
+        setMissingIds(new Set(missing));
+      } catch {
+        setMissingIds(new Set());
+      }
     } catch (err) {
       setError(String(err));
     }
@@ -55,6 +68,7 @@ function App() {
       <main className="container">
         <ArtifactDetail
           artifact={selected}
+          missing={missingIds.has(selected.id)}
           onBack={() => setSelectedId(null)}
           onUpdated={() => void reload()}
         />
@@ -78,6 +92,11 @@ function App() {
           ライブラリの読み込みに失敗しました: {error}
         </div>
       )}
+      {missingIds.size > 0 && (
+        <div className="warning-banner" role="alert">
+          元ファイルが見つからない Artifact が {missingIds.size} 件あります。
+        </div>
+      )}
       <LibraryToolbar
         filter={filter}
         onFilterChange={setFilter}
@@ -89,6 +108,7 @@ function App() {
       />
       <ArtifactList
         artifacts={filtered}
+        missingIds={missingIds}
         onSelect={(a) => setSelectedId(a.id)}
       />
     </main>

@@ -2,15 +2,16 @@ import type { Artifact } from "../types/artifact";
 
 type Props = {
   artifact: Artifact;
+  missing?: boolean;
   onClick?: (artifact: Artifact) => void;
 };
 
-export function ArtifactCard({ artifact, onClick }: Props) {
+export function ArtifactCard({ artifact, missing, onClick }: Props) {
   const handleClick = () => onClick?.(artifact);
 
   return (
     <article
-      className={`artifact-card${artifact.isRead ? "" : " is-unread"}`}
+      className={`artifact-card${artifact.isRead ? "" : " is-unread"}${missing ? " is-missing" : ""}`}
       onClick={handleClick}
       role="button"
       tabIndex={0}
@@ -29,6 +30,11 @@ export function ArtifactCard({ artifact, onClick }: Props) {
         {artifact.isFavorite && (
           <span className="favorite-star" aria-label="お気に入り">
             ★
+          </span>
+        )}
+        {missing && (
+          <span className="missing-badge" aria-label="ファイルが見つかりません">
+            ファイル無
           </span>
         )}
       </div>
