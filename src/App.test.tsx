@@ -35,7 +35,7 @@ describe("App", () => {
   it("空ライブラリのとき空状態メッセージを表示する", async () => {
     render(<App />);
     expect(
-      await screen.findByText(/まだ何も登録されていません/),
+      await screen.findByText(/条件に合う Artifact がありません/),
     ).toBeInTheDocument();
   });
 
