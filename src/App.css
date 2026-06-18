@@ -989,10 +989,11 @@ html {
 
 .html-view-frame {
   width: 100%;
-  height: 72vh;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
-  background-color: #ffffff;
+  /* 高さは JS で contentDocument に合わせて伸ばす */
+  border: 0;
+  background-color: transparent;
+  display: block;
+  overflow: hidden;
 }
 
 /* ───────── 編集フォーム ───────── */
