@@ -3,6 +3,8 @@ name = "artifact-shelf"
 version = "0.1.0"
 description = "A local-first desktop library for organizing, tagging, and viewing Markdown and HTML artifacts."
 authors = ["KITA-DS12"]
+license = "MIT"
+repository = "https://github.com/KITA-DS12/artifact-shelf"
 edition = "2021"
 
 [lib]

@@ -2,6 +2,17 @@
   "name": "artifact-shelf",
   "private": true,
   "version": "0.1.0",
+  "description": "A local-first desktop library for organizing, tagging, and viewing Markdown and HTML artifacts.",
+  "license": "MIT",
+  "author": "KITA-DS12",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/KITA-DS12/artifact-shelf"
+  },
+  "homepage": "https://github.com/KITA-DS12/artifact-shelf",
+  "bugs": {
+    "url": "https://github.com/KITA-DS12/artifact-shelf/issues"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite",
