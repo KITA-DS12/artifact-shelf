@@ -4,7 +4,7 @@ export interface TocEntry {
   slug: string;
 }
 
-function slugify(text: string): string {
+export function slugify(text: string): string {
   return text
     .trim()
     .toLowerCase()
