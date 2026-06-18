@@ -1,13 +1,16 @@
 import { useEffect, useState } from "react";
 import type { Artifact } from "../types/artifact";
-import { readArtifactContent } from "../lib/library";
+import type { ArtifactUpdate } from "../types/edit";
+import { readArtifactContent, updateArtifact } from "../lib/library";
 import { MarkdownView } from "./MarkdownView";
 import { HtmlView } from "./HtmlView";
+import { ArtifactEditForm } from "./ArtifactEditForm";
 import { generateToc, type TocEntry } from "../lib/toc";
 
 type Props = {
   artifact: Artifact;
   onBack: () => void;
+  onUpdated?: (updated: Artifact) => void;
 };
 
 type LoadState =
@@ -15,8 +18,9 @@ type LoadState =
   | { kind: "ready"; content: string }
   | { kind: "error"; message: string };
 
-export function ArtifactDetail({ artifact, onBack }: Props) {
+export function ArtifactDetail({ artifact, onBack, onUpdated }: Props) {
   const [state, setState] = useState<LoadState>({ kind: "loading" });
+  const [editing, setEditing] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -39,6 +43,12 @@ export function ArtifactDetail({ artifact, onBack }: Props) {
       ? generateToc(state.content)
       : [];
 
+  async function handleSave(update: ArtifactUpdate) {
+    const updated = await updateArtifact(artifact.id, update);
+    setEditing(false);
+    onUpdated?.(updated);
+  }
+
   return (
     <article className="artifact-detail">
       <div className="detail-toolbar">
@@ -47,27 +57,49 @@ export function ArtifactDetail({ artifact, onBack }: Props) {
         </button>
       </div>
       <header className="detail-header">
-        <h1 className="detail-title">{artifact.title}</h1>
-        <div className="detail-meta">
-          <span className={`type-badge type-${artifact.fileType}`}>
-            {artifact.fileType === "markdown" ? "Markdown" : "HTML"}
-          </span>
-          <span>{artifact.source}</span>
-          <span className="dot">·</span>
-          <span>{artifact.generatedAt}</span>
-        </div>
-        {artifact.tags.length > 0 && (
-          <ul className="detail-tags" aria-label="タグ">
-            {artifact.tags.map((t) => (
-              <li key={t}>{t}</li>
-            ))}
-          </ul>
+        {!editing ? (
+          <>
+            <h1 className="detail-title">{artifact.title}</h1>
+            <div className="detail-meta">
+              <span className={`type-badge type-${artifact.fileType}`}>
+                {artifact.fileType === "markdown" ? "Markdown" : "HTML"}
+              </span>
+              <span>{artifact.source}</span>
+              <span className="dot">·</span>
+              <span>{artifact.generatedAt}</span>
+              {artifact.isFavorite && (
+                <span className="favorite-star" aria-label="お気に入り">
+                  ★
+                </span>
+              )}
+              <span className={`read-pill ${artifact.isRead ? "is-read" : "is-unread"}`}>
+                {artifact.isRead ? "既読" : "未読"}
+              </span>
+            </div>
+            {artifact.tags.length > 0 && (
+              <ul className="detail-tags" aria-label="タグ">
+                {artifact.tags.map((t) => (
+                  <li key={t}>{t}</li>
+                ))}
+              </ul>
+            )}
+            {artifact.note && <p className="detail-note">{artifact.note}</p>}
+            <div className="detail-actions">
+              <button type="button" onClick={() => setEditing(true)}>
+                編集
+              </button>
+              <button type="button" disabled title="後続 Issue で実装">
+                元ファイルを開く
+              </button>
+            </div>
+          </>
+        ) : (
+          <ArtifactEditForm
+            artifact={artifact}
+            onSave={handleSave}
+            onCancel={() => setEditing(false)}
+          />
         )}
-        <div className="detail-actions">
-          <button type="button" disabled title="後続 Issue で実装">
-            元ファイルを開く
-          </button>
-        </div>
       </header>
 
       <div className="detail-body">

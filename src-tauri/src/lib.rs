@@ -1,6 +1,8 @@
+pub mod edit;
 pub mod import;
 pub mod store;
 
+use chrono::Utc;
 use std::path::PathBuf;
 use tauri::Manager;
 
@@ -34,6 +36,20 @@ fn import_artifacts(
 }
 
 #[tauri::command]
+fn update_artifact(
+    app: tauri::AppHandle,
+    id: String,
+    update: edit::ArtifactUpdate,
+) -> Result<store::Artifact, String> {
+    let lib_path = library_path(&app)?;
+    let mut library = store::load_library(&lib_path).map_err(|e| e.to_string())?;
+    let now = Utc::now().to_rfc3339();
+    let updated = edit::apply_update(&mut library, &id, &update, &now)?;
+    store::save_library(&lib_path, &library).map_err(|e| e.to_string())?;
+    Ok(updated)
+}
+
+#[tauri::command]
 fn read_artifact_content(app: tauri::AppHandle, id: String) -> Result<String, String> {
     let lib_path = library_path(&app)?;
     let library = store::load_library(&lib_path).map_err(|e| e.to_string())?;
@@ -53,6 +69,7 @@ pub fn run() {
             load_library,
             save_library,
             import_artifacts,
+            update_artifact,
             read_artifact_content
         ])
         .run(tauri::generate_context!())

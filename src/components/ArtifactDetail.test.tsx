@@ -81,4 +81,30 @@ describe("ArtifactDetail", () => {
     );
     expect(await screen.findByTitle("HTML プレビュー")).toBeInTheDocument();
   });
+
+  it("編集ボタンで編集フォームに切替、保存で update_artifact を呼ぶ", async () => {
+    const user = userEvent.setup();
+    invokeMock.mockResolvedValueOnce("# A"); // read_artifact_content
+    invokeMock.mockResolvedValueOnce({ ...fixture(), title: "改題" }); // update_artifact
+    const onUpdated = vi.fn();
+    render(
+      <ArtifactDetail
+        artifact={fixture()}
+        onBack={() => {}}
+        onUpdated={onUpdated}
+      />,
+    );
+    await user.click(await screen.findByRole("button", { name: "編集" }));
+    await user.clear(screen.getByLabelText("タイトル"));
+    await user.type(screen.getByLabelText("タイトル"), "改題");
+    await user.click(screen.getByRole("button", { name: "保存" }));
+
+    await waitFor(() => {
+      expect(invokeMock).toHaveBeenCalledWith("update_artifact", {
+        id: "x",
+        update: expect.objectContaining({ title: "改題" }),
+      });
+    });
+    expect(onUpdated).toHaveBeenCalled();
+  });
 });

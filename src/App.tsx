@@ -36,6 +36,7 @@ function App() {
         <ArtifactDetail
           artifact={selected}
           onBack={() => setSelectedId(null)}
+          onUpdated={() => void reload()}
         />
       </main>
     );

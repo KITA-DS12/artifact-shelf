@@ -1,9 +1,11 @@
 import { invoke } from "@tauri-apps/api/core";
 import {
+  type Artifact,
   type Library,
   CURRENT_SCHEMA_VERSION,
 } from "../types/artifact";
 import type { ImportResult } from "../types/import";
+import type { ArtifactUpdate } from "../types/edit";
 
 export function emptyLibrary(): Library {
   return { version: CURRENT_SCHEMA_VERSION, artifacts: [] };
@@ -23,4 +25,11 @@ export async function importArtifacts(paths: string[]): Promise<ImportResult> {
 
 export async function readArtifactContent(id: string): Promise<string> {
   return invoke<string>("read_artifact_content", { id });
+}
+
+export async function updateArtifact(
+  id: string,
+  update: ArtifactUpdate,
+): Promise<Artifact> {
+  return invoke<Artifact>("update_artifact", { id, update });
 }
