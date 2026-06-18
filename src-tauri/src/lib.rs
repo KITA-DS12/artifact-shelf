@@ -1,3 +1,4 @@
+pub mod delete;
 pub mod edit;
 pub mod files;
 pub mod import;
@@ -95,6 +96,15 @@ fn check_missing_artifacts(app: tauri::AppHandle) -> Result<Vec<String>, String>
 }
 
 #[tauri::command]
+fn delete_artifacts(app: tauri::AppHandle, ids: Vec<String>) -> Result<usize, String> {
+    let lib_path = library_path(&app)?;
+    let mut library = store::load_library(&lib_path).map_err(|e| e.to_string())?;
+    let removed = delete::remove_artifacts(&mut library, &ids);
+    store::save_library(&lib_path, &library).map_err(|e| e.to_string())?;
+    Ok(removed)
+}
+
+#[tauri::command]
 fn relink_artifact(
     app: tauri::AppHandle,
     id: String,
@@ -119,6 +129,7 @@ pub fn run() {
             save_library,
             import_artifacts,
             update_artifact,
+            delete_artifacts,
             read_artifact_content,
             open_in_finder,
             open_with_default,

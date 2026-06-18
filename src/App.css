@@ -164,6 +164,27 @@ a:hover {
   color: var(--bg-sub);
 }
 
+.btn-danger {
+  background-color: var(--accent);
+  color: var(--bg-sub);
+  border-color: var(--accent);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background-color: #8a3128;
+  border-color: #8a3128;
+  color: var(--bg-sub);
+}
+
+.btn-danger-outline {
+  color: var(--accent) !important;
+  border-color: var(--accent) !important;
+}
+
+.btn-danger-outline:hover:not(:disabled) {
+  background-color: var(--accent-soft) !important;
+}
+
 .import-message {
   font-size: 13px;
   color: var(--fg-sub);
@@ -482,6 +503,94 @@ a:hover {
 .artifact-card.is-missing {
   background-color: var(--error-bg);
   border-color: var(--error-border);
+}
+
+.artifact-card.is-selectable {
+  padding-left: 44px;
+}
+
+.artifact-card.is-selected {
+  background-color: var(--indigo-soft);
+  border-color: var(--indigo);
+}
+
+.select-checkbox {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 3px;
+  background-color: var(--bg-sub);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--bg-sub);
+}
+
+.artifact-card.is-selected .select-checkbox {
+  background-color: var(--indigo);
+  border-color: var(--indigo);
+  color: var(--bg-sub);
+}
+
+.library-toolbar.select-mode {
+  background-color: var(--indigo-soft);
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--indigo);
+}
+
+.select-summary {
+  font-family: var(--serif);
+  font-weight: 600;
+  color: var(--indigo);
+  margin-right: auto;
+}
+
+/* Modal */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(20, 16, 10, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 20px;
+}
+
+.confirm-dialog {
+  background-color: var(--bg-sub);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  padding: 24px 26px;
+  max-width: 440px;
+  width: 100%;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.25);
+}
+
+.confirm-title {
+  margin: 0 0 8px;
+  font-family: var(--serif);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.confirm-message {
+  margin: 0 0 20px;
+  color: var(--fg-sub);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
 }
 
 .empty-state {

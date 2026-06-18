@@ -14,6 +14,11 @@ type Props = {
   availableTags: string[];
   totalCount: number;
   matchedCount: number;
+  selectMode?: boolean;
+  selectedCount?: number;
+  onEnterSelectMode?: () => void;
+  onExitSelectMode?: () => void;
+  onRequestDelete?: () => void;
 };
 
 const FILE_TYPES: FileType[] = ["markdown", "html"];
@@ -35,6 +40,11 @@ export function LibraryToolbar({
   availableTags,
   totalCount,
   matchedCount,
+  selectMode = false,
+  selectedCount = 0,
+  onEnterSelectMode,
+  onExitSelectMode,
+  onRequestDelete,
 }: Props) {
   const [expanded, setExpanded] = useState(false);
 
@@ -42,6 +52,33 @@ export function LibraryToolbar({
     return list.includes(value)
       ? list.filter((v) => v !== value)
       : [...list, value];
+  }
+
+  if (selectMode) {
+    return (
+      <div className="library-toolbar select-mode">
+        <div className="toolbar-row">
+          <span className="select-summary">
+            {selectedCount} 件を選択中
+          </span>
+          <button
+            type="button"
+            className="btn btn-danger"
+            disabled={selectedCount === 0}
+            onClick={onRequestDelete}
+          >
+            削除
+          </button>
+          <button
+            type="button"
+            className="btn"
+            onClick={onExitSelectMode}
+          >
+            キャンセル
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -78,6 +115,13 @@ export function LibraryToolbar({
           onClick={() => setExpanded((v) => !v)}
         >
           フィルタ {expanded ? "▴" : "▾"}
+        </button>
+        <button
+          type="button"
+          className="filter-toggle"
+          onClick={onEnterSelectMode}
+        >
+          選択
         </button>
       </div>
       <div className="toolbar-meta muted">
