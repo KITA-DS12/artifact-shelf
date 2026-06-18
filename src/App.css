@@ -552,6 +552,80 @@ a:hover {
   letter-spacing: 0.005em;
 }
 
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.title-input {
+  font: inherit;
+  font-family: var(--serif);
+  font-size: 26px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background-color: var(--bg-sub);
+  color: inherit;
+  width: 100%;
+}
+
+.title-input:focus {
+  outline: none;
+  border-color: var(--indigo);
+  box-shadow: 0 0 0 3px var(--indigo-soft);
+}
+
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--fg-sub);
+  cursor: pointer;
+}
+
+.icon-button:hover {
+  background-color: var(--bg-deep);
+  color: var(--fg);
+  border-color: var(--border);
+}
+
+.star-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--fg-muted);
+  padding: 0;
+}
+
+.star-button:hover {
+  color: var(--accent);
+}
+
+.star-button.is-on {
+  color: var(--accent);
+}
+
+.read-pill {
+  cursor: pointer;
+  font: inherit;
+  font-family: var(--serif);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
 .detail-meta {
   display: flex;
   align-items: center;
@@ -625,6 +699,49 @@ a:hover {
   line-height: 1.6;
   font-family: var(--serif);
   font-style: italic;
+  cursor: text;
+  text-align: left;
+}
+
+.detail-note:hover {
+  border-left-color: var(--indigo);
+}
+
+.note-input {
+  font: inherit;
+  font-family: var(--serif);
+  font-size: 13px;
+  line-height: 1.6;
+  padding: 10px 14px;
+  border: 1px solid var(--border-strong);
+  border-left: 3px solid var(--indigo);
+  border-radius: 0;
+  background-color: var(--bg-sub);
+  color: inherit;
+  resize: vertical;
+  width: 100%;
+}
+
+.note-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--indigo-soft);
+}
+
+.note-empty {
+  font: inherit;
+  font-size: 12px;
+  padding: 4px 10px;
+  border: 1px dashed var(--border-strong);
+  background: transparent;
+  color: var(--fg-sub);
+  cursor: pointer;
+  border-radius: 2px;
+  align-self: flex-start;
+}
+
+.note-empty:hover {
+  color: var(--indigo);
+  border-color: var(--indigo);
 }
 
 .detail-path {
@@ -925,29 +1042,72 @@ html {
   padding: 0;
   list-style: none;
   display: flex;
-  gap: 4px;
+  gap: 6px;
   flex-wrap: wrap;
+  align-items: center;
 }
 
 .tag-edit-list li {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 2px 4px 2px 8px;
+  padding: 2px 4px 2px 9px;
   border-radius: 2px;
   background-color: var(--bg-deep);
   font-size: 12px;
   border: 1px solid var(--border);
 }
 
+.tag-edit-list li.tag-add {
+  padding: 0;
+  background: transparent;
+  border: 0;
+}
+
 .tag-edit-list button {
   border: none;
   background: none;
   cursor: pointer;
-  font-size: 14px;
-  line-height: 1;
-  padding: 0 4px;
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 4px;
   color: var(--fg-sub);
+}
+
+.tag-edit-list button:hover {
+  color: var(--accent);
+}
+
+.tag-add-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px !important;
+  border: 1px dashed var(--border-strong) !important;
+  border-radius: 2px;
+  color: var(--fg-sub);
+  font-size: 12px;
+}
+
+.tag-add-button:hover {
+  color: var(--indigo) !important;
+  border-color: var(--indigo) !important;
+}
+
+.tag-edit-list li.tag-add input {
+  font: inherit;
+  font-size: 12px;
+  padding: 3px 8px;
+  border: 1px solid var(--indigo);
+  border-radius: 2px;
+  background-color: var(--bg-sub);
+  color: inherit;
+  min-width: 100px;
+}
+
+.tag-edit-list li.tag-add input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--indigo-soft);
 }
 
 .tag-input-row {

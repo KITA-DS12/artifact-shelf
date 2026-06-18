@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { FileType, Source } from "../types/artifact";
+import type { FileType } from "../types/artifact";
 import {
   type LibraryFilter,
   type SortKey,
@@ -17,7 +17,6 @@ type Props = {
 };
 
 const FILE_TYPES: FileType[] = ["markdown", "html"];
-const SOURCES: Source[] = ["Claude", "ChatGPT", "Gemini", "Manual", "Unknown"];
 const SORT_KEYS: SortKey[] = [
   "unread-then-generated-desc",
   "generated-desc",
@@ -153,25 +152,6 @@ export function LibraryToolbar({
               />
               お気に入りのみ
             </label>
-          </fieldset>
-
-          <fieldset>
-            <legend>生成元</legend>
-            {SOURCES.map((s) => (
-              <label key={s}>
-                <input
-                  type="checkbox"
-                  checked={filter.sources.includes(s)}
-                  onChange={() =>
-                    onFilterChange({
-                      ...filter,
-                      sources: toggle(filter.sources, s),
-                    })
-                  }
-                />
-                {s}
-              </label>
-            ))}
           </fieldset>
 
           <fieldset>
