@@ -34,6 +34,10 @@ export async function updateArtifact(
   return invoke<Artifact>("update_artifact", { id, update });
 }
 
+export async function deleteArtifacts(ids: string[]): Promise<number> {
+  return invoke<number>("delete_artifacts", { ids });
+}
+
 export async function openInFinder(path: string): Promise<void> {
   await invoke("open_in_finder", { path });
 }

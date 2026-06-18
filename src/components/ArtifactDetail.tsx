@@ -20,6 +20,7 @@ type Props = {
   missing?: boolean;
   onBack: () => void;
   onUpdated?: (updated: Artifact) => void;
+  onDelete?: () => void;
 };
 
 type LoadState =
@@ -33,6 +34,7 @@ export function ArtifactDetail({
   missing,
   onBack,
   onUpdated,
+  onDelete,
 }: Props) {
   const [state, setState] = useState<LoadState>({ kind: "loading" });
   const [actionMessage, setActionMessage] = useState<string | null>(null);
@@ -204,6 +206,15 @@ export function ArtifactDetail({
           <button type="button" onClick={() => void handleRelink()}>
             再紐付け…
           </button>
+          {onDelete && (
+            <button
+              type="button"
+              className="btn-danger-outline"
+              onClick={onDelete}
+            >
+              ライブラリから削除
+            </button>
+          )}
         </div>
         {actionMessage && (
           <p className="action-message">{actionMessage}</p>

@@ -5,9 +5,19 @@ type Props = {
   artifacts: readonly Artifact[];
   missingIds?: ReadonlySet<string>;
   onSelect?: (artifact: Artifact) => void;
+  selectMode?: boolean;
+  selectedIds?: ReadonlySet<string>;
+  onToggleSelect?: (artifact: Artifact) => void;
 };
 
-export function ArtifactList({ artifacts, missingIds, onSelect }: Props) {
+export function ArtifactList({
+  artifacts,
+  missingIds,
+  onSelect,
+  selectMode,
+  selectedIds,
+  onToggleSelect,
+}: Props) {
   if (artifacts.length === 0) {
     return (
       <section className="empty-state">
@@ -26,7 +36,10 @@ export function ArtifactList({ artifacts, missingIds, onSelect }: Props) {
           key={a.id}
           artifact={a}
           missing={missingIds?.has(a.id)}
+          selectMode={selectMode}
+          selected={selectedIds?.has(a.id)}
           onClick={onSelect}
+          onToggleSelect={onToggleSelect}
         />
       ))}
     </section>
