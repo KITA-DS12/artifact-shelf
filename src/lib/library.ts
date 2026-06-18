@@ -33,3 +33,30 @@ export async function updateArtifact(
 ): Promise<Artifact> {
   return invoke<Artifact>("update_artifact", { id, update });
 }
+
+export async function openInFinder(path: string): Promise<void> {
+  await invoke("open_in_finder", { path });
+}
+
+export async function openWithDefault(path: string): Promise<void> {
+  await invoke("open_with_default", { path });
+}
+
+export async function copyToClipboard(text: string): Promise<void> {
+  await invoke("copy_to_clipboard", { text });
+}
+
+export async function checkFileExists(path: string): Promise<boolean> {
+  return invoke<boolean>("check_file_exists", { path });
+}
+
+export async function checkMissingArtifacts(): Promise<string[]> {
+  return invoke<string[]>("check_missing_artifacts");
+}
+
+export async function relinkArtifact(
+  id: string,
+  newPath: string,
+): Promise<Artifact> {
+  return invoke<Artifact>("relink_artifact", { id, newPath });
+}

@@ -10,6 +10,10 @@ vi.mock("@tauri-apps/api/core", () => ({
   invoke: (...args: unknown[]) => invokeMock(...args),
 }));
 
+vi.mock("@tauri-apps/plugin-dialog", () => ({
+  open: vi.fn(),
+}));
+
 function fixture(overrides: Partial<Artifact> = {}): Artifact {
   return {
     id: "x",
@@ -69,6 +73,53 @@ describe("ArtifactDetail", () => {
     render(<ArtifactDetail artifact={fixture()} onBack={onBack} />);
     await userEvent.click(screen.getByRole("button", { name: /ライブラリ/ }));
     expect(onBack).toHaveBeenCalled();
+  });
+
+  it("missing=true のとき警告を表示し、読み込みを試みない", async () => {
+    render(
+      <ArtifactDetail
+        artifact={fixture()}
+        missing
+        onBack={() => {}}
+      />,
+    );
+    expect(
+      await screen.findByText(/元ファイルが見つかりません/),
+    ).toBeInTheDocument();
+    expect(invokeMock).not.toHaveBeenCalledWith(
+      "read_artifact_content",
+      expect.anything(),
+    );
+  });
+
+  it("Finder で表示ボタンで open_in_finder が呼ばれる", async () => {
+    const user = userEvent.setup();
+    invokeMock.mockResolvedValueOnce("# A"); // read
+    invokeMock.mockResolvedValueOnce(undefined); // open
+    render(<ArtifactDetail artifact={fixture()} onBack={() => {}} />);
+    await user.click(
+      await screen.findByRole("button", { name: "Finder で表示" }),
+    );
+    await waitFor(() =>
+      expect(invokeMock).toHaveBeenCalledWith("open_in_finder", {
+        path: "/tmp/a.md",
+      }),
+    );
+  });
+
+  it("パスをコピーで copy_to_clipboard が呼ばれる", async () => {
+    const user = userEvent.setup();
+    invokeMock.mockResolvedValueOnce("# A");
+    invokeMock.mockResolvedValueOnce(undefined);
+    render(<ArtifactDetail artifact={fixture()} onBack={() => {}} />);
+    await user.click(
+      await screen.findByRole("button", { name: "パスをコピー" }),
+    );
+    await waitFor(() =>
+      expect(invokeMock).toHaveBeenCalledWith("copy_to_clipboard", {
+        text: "/tmp/a.md",
+      }),
+    );
   });
 
   it("HTML artifact のときは iframe プレビューを表示する", async () => {

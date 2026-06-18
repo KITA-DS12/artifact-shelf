@@ -101,6 +101,52 @@ body {
   font-size: 13px;
 }
 
+.warning-banner {
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  border: 1px solid #f4d484;
+  border-radius: 8px;
+  background-color: #fff5d8;
+  color: #6b4500;
+  font-size: 13px;
+}
+
+.missing-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background-color: #fdecec;
+  color: #82171c;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.missing-banner {
+  padding: 8px 12px;
+  border: 1px solid #f4d484;
+  background-color: #fff5d8;
+  color: #6b4500;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.artifact-card.is-missing {
+  border-color: #f3c4c4;
+  background-color: #fff8f8;
+}
+
+.detail-path {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  word-break: break-all;
+  margin: 0;
+}
+
+.action-message {
+  margin: 0;
+  font-size: 12px;
+}
+
 .artifact-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));

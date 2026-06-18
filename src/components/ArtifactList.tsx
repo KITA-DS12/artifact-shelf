@@ -3,10 +3,11 @@ import { ArtifactCard } from "./ArtifactCard";
 
 type Props = {
   artifacts: readonly Artifact[];
+  missingIds?: ReadonlySet<string>;
   onSelect?: (artifact: Artifact) => void;
 };
 
-export function ArtifactList({ artifacts, onSelect }: Props) {
+export function ArtifactList({ artifacts, missingIds, onSelect }: Props) {
   if (artifacts.length === 0) {
     return (
       <section className="empty-state">
@@ -21,7 +22,12 @@ export function ArtifactList({ artifacts, onSelect }: Props) {
   return (
     <section className="artifact-list" aria-label="Artifact 一覧">
       {artifacts.map((a) => (
-        <ArtifactCard key={a.id} artifact={a} onClick={onSelect} />
+        <ArtifactCard
+          key={a.id}
+          artifact={a}
+          missing={missingIds?.has(a.id)}
+          onClick={onSelect}
+        />
       ))}
     </section>
   );

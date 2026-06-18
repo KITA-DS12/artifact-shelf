@@ -1,10 +1,13 @@
 pub mod edit;
+pub mod files;
 pub mod import;
 pub mod store;
 
 use chrono::Utc;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tauri::Manager;
+use tauri_plugin_clipboard_manager::ClipboardExt;
+use tauri_plugin_opener::OpenerExt;
 
 fn library_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     let dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
@@ -60,17 +63,69 @@ fn read_artifact_content(app: tauri::AppHandle, id: String) -> Result<String, St
         .map_err(|e| format!("ファイル読み込みに失敗しました: {e}"))
 }
 
+#[tauri::command]
+fn open_in_finder(app: tauri::AppHandle, path: String) -> Result<(), String> {
+    app.opener()
+        .reveal_item_in_dir(path)
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn open_with_default(app: tauri::AppHandle, path: String) -> Result<(), String> {
+    app.opener()
+        .open_path(path, None::<String>)
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn copy_to_clipboard(app: tauri::AppHandle, text: String) -> Result<(), String> {
+    app.clipboard().write_text(text).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn check_file_exists(path: String) -> bool {
+    Path::new(&path).exists()
+}
+
+#[tauri::command]
+fn check_missing_artifacts(app: tauri::AppHandle) -> Result<Vec<String>, String> {
+    let lib_path = library_path(&app)?;
+    let library = store::load_library(&lib_path).map_err(|e| e.to_string())?;
+    Ok(files::missing_artifact_ids(&library))
+}
+
+#[tauri::command]
+fn relink_artifact(
+    app: tauri::AppHandle,
+    id: String,
+    new_path: String,
+) -> Result<store::Artifact, String> {
+    let lib_path = library_path(&app)?;
+    let mut library = store::load_library(&lib_path).map_err(|e| e.to_string())?;
+    let now = Utc::now().to_rfc3339();
+    let updated = files::relink(&mut library, &id, &new_path, &now)?;
+    store::save_library(&lib_path, &library).map_err(|e| e.to_string())?;
+    Ok(updated)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_clipboard_manager::init())
         .invoke_handler(tauri::generate_handler![
             load_library,
             save_library,
             import_artifacts,
             update_artifact,
-            read_artifact_content
+            read_artifact_content,
+            open_in_finder,
+            open_with_default,
+            copy_to_clipboard,
+            check_file_exists,
+            check_missing_artifacts,
+            relink_artifact
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
