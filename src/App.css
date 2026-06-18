@@ -147,6 +147,37 @@ body {
   font-size: 12px;
 }
 
+.info-banner {
+  margin-bottom: 16px;
+  padding: 8px 14px;
+  border: 1px solid #b3dfff;
+  border-radius: 8px;
+  background-color: #ddf4ff;
+  color: #0c4a85;
+  font-size: 13px;
+}
+
+.drop-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(31, 81, 144, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  pointer-events: none;
+}
+
+.drop-overlay-message {
+  padding: 24px 32px;
+  background-color: #ffffff;
+  border-radius: 12px;
+  border: 2px dashed #1f7cd6;
+  color: #1f7cd6;
+  font-weight: 600;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+}
+
 .artifact-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -917,5 +948,33 @@ body {
   .filter-panel legend,
   .filter-sub {
     color: #9198a1;
+  }
+  .info-banner {
+    background-color: #0c2d6b;
+    border-color: #1f4f9a;
+    color: #88c4ff;
+  }
+  .warning-banner {
+    background-color: #3a2e00;
+    border-color: #5e4900;
+    color: #ffd97c;
+  }
+  .missing-badge {
+    background-color: #5b2226;
+    color: #ff9aa0;
+  }
+  .missing-banner {
+    background-color: #3a2e00;
+    border-color: #5e4900;
+    color: #ffd97c;
+  }
+  .artifact-card.is-missing {
+    background-color: #2c1416;
+    border-color: #5b2226;
+  }
+  .drop-overlay-message {
+    background-color: #0d1117;
+    color: #88c4ff;
+    border-color: #1f7cd6;
   }
 }

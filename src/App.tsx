@@ -10,6 +10,7 @@ import {
 } from "./lib/library";
 import { applyFilter, collectAllTags } from "./lib/filter";
 import { sortArtifacts } from "./lib/sort";
+import { useDragDropImport } from "./hooks/useDragDropImport";
 import type { Library } from "./types/artifact";
 import {
   DEFAULT_FILTER,
@@ -48,6 +49,10 @@ function App() {
     void reload();
   }, [reload]);
 
+  const { hovering: dragHovering, message: dragMessage } = useDragDropImport(
+    () => void reload(),
+  );
+
   const availableTags = useMemo(
     () => collectAllTags(library.artifacts),
     [library.artifacts],
@@ -63,9 +68,18 @@ function App() {
       ? library.artifacts.find((a) => a.id === selectedId) ?? null
       : null;
 
+  const overlay = dragHovering ? (
+    <div className="drop-overlay" aria-live="polite">
+      <div className="drop-overlay-message">
+        ファイルをここにドロップしてインポート
+      </div>
+    </div>
+  ) : null;
+
   if (selected) {
     return (
       <main className="container">
+        {overlay}
         <ArtifactDetail
           artifact={selected}
           missing={missingIds.has(selected.id)}
@@ -78,6 +92,7 @@ function App() {
 
   return (
     <main className="container">
+      {overlay}
       <header className="app-header">
         <div className="app-header-row">
           <h1>Artifact Shelf</h1>
@@ -85,6 +100,7 @@ function App() {
         </div>
         <p className="tagline">
           Markdown と HTML の生成物をローカルで整理・閲覧するデスクトップアプリ
+          （ウィンドウへドロップでも追加できます）
         </p>
       </header>
       {error && (
@@ -95,6 +111,11 @@ function App() {
       {missingIds.size > 0 && (
         <div className="warning-banner" role="alert">
           元ファイルが見つからない Artifact が {missingIds.size} 件あります。
+        </div>
+      )}
+      {dragMessage && (
+        <div className="info-banner" role="status">
+          ドラッグ＆ドロップ: {dragMessage}
         </div>
       )}
       <LibraryToolbar
