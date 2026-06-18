@@ -29,10 +29,48 @@ body {
   margin-bottom: 32px;
 }
 
+.app-header-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 4px;
+}
+
 .app-header h1 {
-  margin: 0 0 4px;
+  margin: 0;
   font-size: 28px;
   letter-spacing: -0.01em;
+}
+
+.import-control {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.import-control button {
+  font: inherit;
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid #d0d7de;
+  background-color: #f6f8fa;
+  color: inherit;
+  cursor: pointer;
+}
+
+.import-control button:hover:not(:disabled) {
+  background-color: #eaeef2;
+}
+
+.import-control button:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.import-message {
+  font-size: 13px;
+  color: #59636e;
 }
 
 .tagline {
@@ -65,5 +103,15 @@ body {
   .empty-state {
     border-color: #30363d;
     background-color: #161b22;
+  }
+  .import-control button {
+    border-color: #30363d;
+    background-color: #21262d;
+  }
+  .import-control button:hover:not(:disabled) {
+    background-color: #30363d;
+  }
+  .import-message {
+    color: #9198a1;
   }
 }
