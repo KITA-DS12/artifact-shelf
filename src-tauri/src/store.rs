@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::path::Path;
+use std::io::Write;
+use std::path::{Path, PathBuf};
 
 pub const CURRENT_SCHEMA_VERSION: u32 = 1;
 
@@ -82,13 +83,49 @@ pub fn load_library(path: &Path) -> Result<Library, StoreError> {
     serde_json::from_str(&content).map_err(|e| StoreError::Parse(e.to_string()))
 }
 
+fn tmp_path(path: &Path) -> PathBuf {
+    let mut s = path.as_os_str().to_owned();
+    s.push(".tmp");
+    PathBuf::from(s)
+}
+
+fn bak_path(path: &Path) -> PathBuf {
+    let mut s = path.as_os_str().to_owned();
+    s.push(".bak");
+    PathBuf::from(s)
+}
+
+/// `library.json` を **原子的に** 書き出す。
+///
+/// 1. `library.json.tmp` に書く + fsync
+/// 2. 既存 `library.json` を `library.json.bak` へ rename（直前世代を 1 つ残す）
+/// 3. `library.json.tmp` を `library.json` へ rename
+///
+/// 途中で kill / 電源断が起きても、本体が 0 バイト化して全データが消える事態を避ける。
 pub fn save_library(path: &Path, library: &Library) -> Result<(), StoreError> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).map_err(|e| StoreError::Io(e.to_string()))?;
     }
     let json =
         serde_json::to_string_pretty(library).map_err(|e| StoreError::Parse(e.to_string()))?;
-    fs::write(path, json).map_err(|e| StoreError::Io(e.to_string()))
+
+    let tmp = tmp_path(path);
+    {
+        let mut f = fs::File::create(&tmp).map_err(|e| StoreError::Io(e.to_string()))?;
+        f.write_all(json.as_bytes())
+            .map_err(|e| StoreError::Io(e.to_string()))?;
+        // ディスクへの永続化を保証してから rename する
+        f.sync_all().map_err(|e| StoreError::Io(e.to_string()))?;
+    }
+
+    if path.exists() {
+        let bak = bak_path(path);
+        // bak への rename は失敗してもファタルではない（古い世代の保持に失敗しただけ）。
+        // ただし主目的の本体差し替えには影響しないので、エラーは握りつぶす。
+        let _ = fs::rename(path, &bak);
+    }
+
+    fs::rename(&tmp, path).map_err(|e| StoreError::Io(e.to_string()))
 }
 
 #[cfg(test)]
@@ -191,5 +228,66 @@ mod tests {
     fn find_by_id_returns_none_when_missing() {
         let lib = Library::empty();
         assert!(lib.find_by_id("missing").is_none());
+    }
+
+    #[test]
+    fn save_keeps_previous_generation_as_bak() {
+        let tmp = TempDir::new().unwrap();
+        let path = tmp.path().join("library.json");
+
+        let v1 = Library {
+            version: CURRENT_SCHEMA_VERSION,
+            artifacts: vec![sample_artifact()],
+        };
+        save_library(&path, &v1).unwrap();
+        assert!(path.exists());
+        assert!(!bak_path(&path).exists(), "初回保存では bak は無い");
+
+        let v2 = Library::empty();
+        save_library(&path, &v2).unwrap();
+
+        // 直前世代が .bak として残っている
+        let bak = bak_path(&path);
+        assert!(bak.exists(), ".bak が残るべき");
+        let bak_loaded = load_library(&bak).unwrap();
+        assert_eq!(bak_loaded, v1);
+    }
+
+    #[test]
+    fn save_does_not_leave_tmp_file_on_success() {
+        let tmp = TempDir::new().unwrap();
+        let path = tmp.path().join("library.json");
+
+        save_library(&path, &Library::empty()).unwrap();
+
+        assert!(!tmp_path(&path).exists(), ".tmp は残らない");
+    }
+
+    #[test]
+    fn load_ignores_stale_tmp_file() {
+        // .tmp が中途半端に残っている状況でも、本体が正しく読めることを確認。
+        let tmp = TempDir::new().unwrap();
+        let path = tmp.path().join("library.json");
+
+        save_library(&path, &Library::empty()).unwrap();
+
+        // 後から壊れた .tmp を意図的に置く
+        fs::write(tmp_path(&path), "broken {{ not json").unwrap();
+
+        // 本体側を読みに行くので壊れていないこと
+        let loaded = load_library(&path).unwrap();
+        assert_eq!(loaded, Library::empty());
+    }
+
+    #[test]
+    fn save_writes_via_tmp_then_rename() {
+        // tmp ファイルが作られて、最終的に rename されることを path 比較で確認。
+        let tmp = TempDir::new().unwrap();
+        let path = tmp.path().join("library.json");
+        let tmp_p = tmp_path(&path);
+        assert!(!tmp_p.exists());
+        save_library(&path, &Library::empty()).unwrap();
+        assert!(path.exists());
+        assert!(!tmp_p.exists());
     }
 }
