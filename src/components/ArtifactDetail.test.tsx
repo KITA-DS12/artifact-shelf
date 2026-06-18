@@ -70,4 +70,15 @@ describe("ArtifactDetail", () => {
     await userEvent.click(screen.getByRole("button", { name: /ライブラリ/ }));
     expect(onBack).toHaveBeenCalled();
   });
+
+  it("HTML artifact のときは iframe プレビューを表示する", async () => {
+    invokeMock.mockResolvedValueOnce("<h1>hi</h1>");
+    render(
+      <ArtifactDetail
+        artifact={fixture({ fileType: "html", sourcePath: "/tmp/a.html" })}
+        onBack={() => {}}
+      />,
+    );
+    expect(await screen.findByTitle("HTML プレビュー")).toBeInTheDocument();
+  });
 });
