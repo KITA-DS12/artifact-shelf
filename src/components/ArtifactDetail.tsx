@@ -205,14 +205,14 @@ export function ArtifactDetail({
         )}
       </header>
 
-      <div className="detail-body">
+      <div className={`detail-body${toc.length > 0 ? " has-toc" : ""}`}>
         {toc.length > 0 && (
           <nav className="detail-toc" aria-label="目次">
             <div className="toc-title">目次</div>
             <ul>
               {toc.map((e, i) => (
                 <li key={i} className={`toc-level-${e.level}`}>
-                  {e.text}
+                  <a href={`#${e.slug}`}>{e.text}</a>
                 </li>
               ))}
             </ul>

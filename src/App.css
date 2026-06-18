@@ -669,14 +669,22 @@ a:hover {
 
 .detail-body {
   display: grid;
-  grid-template-columns: 220px 1fr;
+  grid-template-columns: 1fr;
   gap: 28px;
 }
 
+.detail-body.has-toc {
+  grid-template-columns: 220px 1fr;
+}
+
 @media (max-width: 760px) {
-  .detail-body {
+  .detail-body.has-toc {
     grid-template-columns: 1fr;
   }
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 .detail-toc {
@@ -707,8 +715,18 @@ a:hover {
 }
 
 .detail-toc li {
-  line-height: 1.6;
+  line-height: 1.7;
+}
+
+.detail-toc a {
   color: var(--fg);
+  text-decoration: none;
+  display: block;
+  padding: 1px 0;
+}
+
+.detail-toc a:hover {
+  color: var(--accent);
 }
 
 .toc-level-2 {
