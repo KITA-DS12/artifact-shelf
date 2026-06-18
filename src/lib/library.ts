@@ -20,3 +20,7 @@ export async function saveLibrary(library: Library): Promise<void> {
 export async function importArtifacts(paths: string[]): Promise<ImportResult> {
   return invoke<ImportResult>("import_artifacts", { paths });
 }
+
+export async function readArtifactContent(id: string): Promise<string> {
+  return invoke<string>("read_artifact_content", { id });
+}

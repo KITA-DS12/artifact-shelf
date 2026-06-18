@@ -33,6 +33,17 @@ fn import_artifacts(
     Ok(result)
 }
 
+#[tauri::command]
+fn read_artifact_content(app: tauri::AppHandle, id: String) -> Result<String, String> {
+    let lib_path = library_path(&app)?;
+    let library = store::load_library(&lib_path).map_err(|e| e.to_string())?;
+    let artifact = library
+        .find_by_id(&id)
+        .ok_or_else(|| format!("Artifact が見つかりません: {id}"))?;
+    std::fs::read_to_string(&artifact.source_path)
+        .map_err(|e| format!("ファイル読み込みに失敗しました: {e}"))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -41,7 +52,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             load_library,
             save_library,
-            import_artifacts
+            import_artifacts,
+            read_artifact_content
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

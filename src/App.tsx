@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { ImportButton } from "./components/ImportButton";
 import { ArtifactList } from "./components/ArtifactList";
+import { ArtifactDetail } from "./components/ArtifactDetail";
 import { emptyLibrary, loadLibrary } from "./lib/library";
 import type { Library } from "./types/artifact";
 import "./App.css";
@@ -8,6 +9,7 @@ import "./App.css";
 function App() {
   const [library, setLibrary] = useState<Library>(emptyLibrary);
   const [error, setError] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
     try {
@@ -22,6 +24,22 @@ function App() {
   useEffect(() => {
     void reload();
   }, [reload]);
+
+  const selected =
+    selectedId !== null
+      ? library.artifacts.find((a) => a.id === selectedId) ?? null
+      : null;
+
+  if (selected) {
+    return (
+      <main className="container">
+        <ArtifactDetail
+          artifact={selected}
+          onBack={() => setSelectedId(null)}
+        />
+      </main>
+    );
+  }
 
   return (
     <main className="container">
@@ -39,7 +57,10 @@ function App() {
           ライブラリの読み込みに失敗しました: {error}
         </div>
       )}
-      <ArtifactList artifacts={library.artifacts} />
+      <ArtifactList
+        artifacts={library.artifacts}
+        onSelect={(a) => setSelectedId(a.id)}
+      />
     </main>
   );
 }

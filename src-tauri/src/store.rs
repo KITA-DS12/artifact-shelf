@@ -51,6 +51,10 @@ impl Library {
             artifacts: Vec::new(),
         }
     }
+
+    pub fn find_by_id(&self, id: &str) -> Option<&Artifact> {
+        self.artifacts.iter().find(|a| a.id == id)
+    }
 }
 
 #[derive(Debug)]
@@ -172,5 +176,20 @@ mod tests {
             serde_json::to_string(&FileType::Html).unwrap(),
             "\"html\""
         );
+    }
+
+    #[test]
+    fn find_by_id_returns_artifact_when_present() {
+        let lib = Library {
+            version: CURRENT_SCHEMA_VERSION,
+            artifacts: vec![sample_artifact()],
+        };
+        assert!(lib.find_by_id("01HXYZ").is_some());
+    }
+
+    #[test]
+    fn find_by_id_returns_none_when_missing() {
+        let lib = Library::empty();
+        assert!(lib.find_by_id("missing").is_none());
     }
 }
