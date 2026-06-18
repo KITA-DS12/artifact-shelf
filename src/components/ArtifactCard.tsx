@@ -1,4 +1,5 @@
 import type { Artifact } from "../types/artifact";
+import { StarIcon } from "./icons";
 
 type Props = {
   artifact: Artifact;
@@ -26,10 +27,9 @@ export function ArtifactCard({ artifact, missing, onClick }: Props) {
         <span className={`type-badge type-${artifact.fileType}`}>
           {artifact.fileType === "markdown" ? "Markdown" : "HTML"}
         </span>
-        {!artifact.isRead && <span className="unread-dot" aria-label="未読" />}
         {artifact.isFavorite && (
           <span className="favorite-star" aria-label="お気に入り">
-            ★
+            <StarIcon filled size={12} />
           </span>
         )}
         {missing && (
@@ -48,8 +48,6 @@ export function ArtifactCard({ artifact, missing, onClick }: Props) {
       )}
       <div className="artifact-card-meta">
         <span>{artifact.generatedAt}</span>
-        <span className="dot">·</span>
-        <span>{artifact.source}</span>
       </div>
     </article>
   );

@@ -26,7 +26,7 @@ function fixture(overrides: Partial<Artifact> = {}): Artifact {
     updatedAt: "2026-06-18T00:00:00Z",
     isRead: false,
     isFavorite: false,
-    source: "Claude",
+    source: "Unknown",
     note: "",
     ...overrides,
   };
@@ -77,11 +77,7 @@ describe("ArtifactDetail", () => {
 
   it("missing=true のとき警告を表示し、読み込みを試みない", async () => {
     render(
-      <ArtifactDetail
-        artifact={fixture()}
-        missing
-        onBack={() => {}}
-      />,
+      <ArtifactDetail artifact={fixture()} missing onBack={() => {}} />,
     );
     expect(
       await screen.findByText(/元ファイルが見つかりません/),
@@ -94,8 +90,8 @@ describe("ArtifactDetail", () => {
 
   it("Finder で表示ボタンで open_in_finder が呼ばれる", async () => {
     const user = userEvent.setup();
-    invokeMock.mockResolvedValueOnce("# A"); // read
-    invokeMock.mockResolvedValueOnce(undefined); // open
+    invokeMock.mockResolvedValueOnce("# A");
+    invokeMock.mockResolvedValueOnce(undefined);
     render(<ArtifactDetail artifact={fixture()} onBack={() => {}} />);
     await user.click(
       await screen.findByRole("button", { name: "Finder で表示" }),
@@ -133,10 +129,10 @@ describe("ArtifactDetail", () => {
     expect(await screen.findByTitle("HTML プレビュー")).toBeInTheDocument();
   });
 
-  it("編集ボタンで編集フォームに切替、保存で update_artifact を呼ぶ", async () => {
+  it("タイトルをインライン編集して保存できる", async () => {
     const user = userEvent.setup();
-    invokeMock.mockResolvedValueOnce("# A"); // read_artifact_content
-    invokeMock.mockResolvedValueOnce({ ...fixture(), title: "改題" }); // update_artifact
+    invokeMock.mockResolvedValueOnce("# A");
+    invokeMock.mockResolvedValueOnce({ ...fixture(), title: "改題" });
     const onUpdated = vi.fn();
     render(
       <ArtifactDetail
@@ -145,17 +141,70 @@ describe("ArtifactDetail", () => {
         onUpdated={onUpdated}
       />,
     );
-    await user.click(await screen.findByRole("button", { name: "編集" }));
-    await user.clear(screen.getByLabelText("タイトル"));
-    await user.type(screen.getByLabelText("タイトル"), "改題");
-    await user.click(screen.getByRole("button", { name: "保存" }));
+    await user.click(
+      await screen.findByRole("button", { name: "タイトルを編集" }),
+    );
+    const input = screen.getByRole("textbox", { name: "タイトル" });
+    await user.clear(input);
+    await user.type(input, "改題{Enter}");
 
-    await waitFor(() => {
+    await waitFor(() =>
       expect(invokeMock).toHaveBeenCalledWith("update_artifact", {
         id: "x",
         update: expect.objectContaining({ title: "改題" }),
-      });
-    });
+      }),
+    );
     expect(onUpdated).toHaveBeenCalled();
+  });
+
+  it("既読バッジクリックで isRead をトグル", async () => {
+    const user = userEvent.setup();
+    invokeMock.mockResolvedValueOnce("# A");
+    invokeMock.mockResolvedValueOnce({ ...fixture(), isRead: true });
+    render(<ArtifactDetail artifact={fixture()} onBack={() => {}} />);
+    await user.click(await screen.findByRole("button", { name: "未読" }));
+    await waitFor(() =>
+      expect(invokeMock).toHaveBeenCalledWith("update_artifact", {
+        id: "x",
+        update: expect.objectContaining({ isRead: true }),
+      }),
+    );
+  });
+
+  it("星クリックで isFavorite をトグル", async () => {
+    const user = userEvent.setup();
+    invokeMock.mockResolvedValueOnce("# A");
+    invokeMock.mockResolvedValueOnce({ ...fixture(), isFavorite: true });
+    render(<ArtifactDetail artifact={fixture()} onBack={() => {}} />);
+    await user.click(
+      await screen.findByRole("button", { name: "お気に入りに追加" }),
+    );
+    await waitFor(() =>
+      expect(invokeMock).toHaveBeenCalledWith("update_artifact", {
+        id: "x",
+        update: expect.objectContaining({ isFavorite: true }),
+      }),
+    );
+  });
+
+  it("タグ追加 → update_artifact が呼ばれる", async () => {
+    const user = userEvent.setup();
+    invokeMock.mockResolvedValueOnce("# A");
+    invokeMock.mockResolvedValueOnce({
+      ...fixture(),
+      tags: ["review", "auth"],
+    });
+    render(<ArtifactDetail artifact={fixture()} onBack={() => {}} />);
+    await user.click(
+      await screen.findByRole("button", { name: "タグを追加" }),
+    );
+    const tagInput = screen.getByRole("textbox", { name: "新しいタグ" });
+    await user.type(tagInput, "auth{Enter}");
+    await waitFor(() =>
+      expect(invokeMock).toHaveBeenCalledWith("update_artifact", {
+        id: "x",
+        update: expect.objectContaining({ tags: ["review", "auth"] }),
+      }),
+    );
   });
 });
