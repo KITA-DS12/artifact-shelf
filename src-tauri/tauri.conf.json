@@ -26,6 +26,12 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "publisher": "KITA-DS12",
+    "homepage": "https://github.com/KITA-DS12/artifact-shelf",
+    "shortDescription": "Markdown / HTML 生成物のローカル書庫",
+    "longDescription": "Markdown と HTML の AI 生成物を、ローカルでタグ付け・整理・閲覧するためのデスクトップ書庫アプリ。",
+    "license": "MIT",
+    "category": "Productivity",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
