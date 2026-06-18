@@ -1,14 +1,21 @@
-import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
 import App from "./App";
 
+const invokeMock = vi.fn();
+
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: vi.fn(),
+  invoke: (...args: unknown[]) => invokeMock(...args),
 }));
 
 vi.mock("@tauri-apps/plugin-dialog", () => ({
   open: vi.fn(),
 }));
+
+beforeEach(() => {
+  invokeMock.mockReset();
+  invokeMock.mockResolvedValue({ version: 1, artifacts: [] });
+});
 
 describe("App", () => {
   it("アプリ名を見出しとして表示する", () => {
@@ -18,9 +25,48 @@ describe("App", () => {
     ).toBeInTheDocument();
   });
 
-  it("空状態のメッセージを表示する", () => {
+  it("起動時に load_library を呼び出す", async () => {
     render(<App />);
-    expect(screen.getByText(/まだ何も登録されていません/)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(invokeMock).toHaveBeenCalledWith("load_library");
+    });
+  });
+
+  it("空ライブラリのとき空状態メッセージを表示する", async () => {
+    render(<App />);
+    expect(
+      await screen.findByText(/まだ何も登録されていません/),
+    ).toBeInTheDocument();
+  });
+
+  it("ライブラリ取得済みなら artifact のタイトルを表示する", async () => {
+    invokeMock.mockReset();
+    invokeMock.mockResolvedValue({
+      version: 1,
+      artifacts: [
+        {
+          id: "x",
+          title: "認証フローのレビュー",
+          sourcePath: "/tmp/a.md",
+          fileType: "markdown",
+          tags: ["review"],
+          generatedAt: "2026-06-18",
+          importedAt: "2026-06-18T00:00:00Z",
+          updatedAt: "2026-06-18T00:00:00Z",
+          isRead: false,
+          isFavorite: false,
+          source: "Claude",
+          note: "",
+        },
+      ],
+    });
+    render(<App />);
+    expect(
+      await screen.findByRole("heading", {
+        level: 2,
+        name: "認証フローのレビュー",
+      }),
+    ).toBeInTheDocument();
   });
 
   it("インポートボタンを表示する", () => {
