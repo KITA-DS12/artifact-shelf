@@ -64,6 +64,9 @@ const INJECT_SCRIPT = `
         if (!href) return;
 
         // 同一ドキュメント内アンカー
+        // iframe は scrolling="no" + 内容に合わせた auto height で運用しているため、
+        // iframe 内の scrollIntoView は viewport 全体が見えている扱いで動かない。
+        // 親に target の位置を通知してホストウィンドウ側でスクロールさせる。
         if (href.charAt(0) === '#') {
           if (href.length < 2) {
             e.preventDefault();
@@ -74,9 +77,13 @@ const INJECT_SCRIPT = `
           var decoded = raw;
           try { decoded = decodeURIComponent(raw); } catch (_) {}
           var target = resolveTarget(decoded) || resolveTarget(raw);
-          if (target && typeof target.scrollIntoView === 'function') {
-            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            setTimeout(notify, 200);
+          if (target) {
+            var rect = target.getBoundingClientRect();
+            var pageY = (window.scrollY || window.pageYOffset || 0);
+            parent.postMessage({
+              type: 'YOMIKURA_SCROLL_TO',
+              topInFrame: rect.top + pageY,
+            }, '*');
           } else {
             console.warn('[yomikura] anchor target not found:', href);
           }
@@ -152,6 +159,18 @@ export function HtmlView({ content }: Props) {
       if (data.type === "YOMIKURA_OPEN_EXTERNAL") {
         const url = String(data.url ?? "");
         if (url) void openExternalUrl(url).catch(() => {});
+        return;
+      }
+      if (data.type === "YOMIKURA_SCROLL_TO") {
+        const iframe = iframeRef.current;
+        if (!iframe) return;
+        const topInFrame = Number(data.topInFrame ?? 0);
+        if (!Number.isFinite(topInFrame)) return;
+        const rect = iframe.getBoundingClientRect();
+        // iframe の document 内座標 → ホストウィンドウの絶対座標
+        const absoluteTop = window.scrollY + rect.top + topInFrame;
+        // 上に少しマージン（読みやすさのため）
+        window.scrollTo({ top: absoluteTop - 24, behavior: "smooth" });
         return;
       }
     };
