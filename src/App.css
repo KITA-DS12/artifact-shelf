@@ -1098,11 +1098,20 @@ html {
 
 .html-view-frame {
   width: 100%;
-  /* 高さは JS で contentDocument に合わせて伸ばす */
+  /* 通常モードでは JS で高さを内容に合わせて伸ばす（シームレス） */
   border: 0;
   background-color: transparent;
   display: block;
   overflow: hidden;
+}
+
+/* 安全プレビューは JS 不可のため、内部スクロールを許可した固定高さに */
+.html-view-frame.is-fixed {
+  height: 72vh;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background-color: #ffffff;
 }
 
 /* ───────── 編集フォーム ───────── */
