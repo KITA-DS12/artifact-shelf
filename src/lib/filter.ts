@@ -3,22 +3,35 @@ import type { LibraryFilter } from "../types/filter";
 import { isUnderDirectory } from "./directory-tree";
 import { isRead } from "./read-state";
 
-function matchesSearch(a: Artifact, q: string): boolean {
+function matchesSearch(
+  a: Artifact,
+  q: string,
+  contentMatched?: ReadonlySet<string>,
+): boolean {
   const fields: string[] = [a.title, a.note, a.sourcePath, ...a.tags];
-  return fields.some((f) => f.toLowerCase().includes(q));
+  if (fields.some((f) => f.toLowerCase().includes(q))) return true;
+  // 本文検索 ON のとき、メタデータにマッチしなくても本文にあれば OR で通す
+  if (contentMatched && contentMatched.has(a.id)) return true;
+  return false;
 }
 
 function capturedDate(a: Artifact): string {
   return a.capturedAt.slice(0, 10);
 }
 
+/**
+ * フィルタを適用する。検索クエリは title / tag / note / path に対する case-insensitive
+ * 部分一致で、本文検索 ON のときは `contentMatched` set に含まれる id も OR で通す。
+ */
 export function applyFilter(
   artifacts: readonly Artifact[],
   filter: LibraryFilter,
+  contentMatched?: ReadonlySet<string> | null,
 ): Artifact[] {
   const q = filter.search.trim().toLowerCase();
+  const cm = contentMatched ?? undefined;
   return artifacts.filter((a) => {
-    if (q && !matchesSearch(a, q)) return false;
+    if (q && !matchesSearch(a, q, cm)) return false;
     if (
       filter.tags.length > 0 &&
       !filter.tags.every((t) => a.tags.includes(t))

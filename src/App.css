@@ -325,54 +325,6 @@ a:hover {
   font-size: 13px;
 }
 
-/* Inbox bar */
-.inbox-bar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  padding: 8px 12px;
-  margin-bottom: 16px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background-color: var(--bg-sub);
-  font-size: 13px;
-}
-
-.inbox-label {
-  font-family: var(--serif);
-  font-weight: 600;
-  font-size: 12px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--fg-sub);
-}
-
-.inbox-path {
-  font-family: var(--mono);
-  font-size: 12px;
-  background-color: var(--bg-deep);
-  padding: 2px 8px;
-  border-radius: 2px;
-  max-width: 50ch;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.inbox-help {
-  font-size: 12px;
-}
-
-.inbox-message {
-  font-size: 12px;
-  font-style: italic;
-}
-
-.inbox-clear {
-  font-size: 12px;
-}
-
 /* ───────── インポート ───────── */
 
 .import-control {

@@ -10,12 +10,8 @@ import {
   deleteArtifacts,
   emptyLibrary,
   loadLibrary,
-  loadSettings,
-  scanAndImportInbox,
   searchInContents,
 } from "./lib/library";
-import { InboxBar } from "./components/InboxBar";
-import { DEFAULT_SETTINGS, type Settings } from "./types/settings";
 import { applyFilter, collectAllTags } from "./lib/filter";
 import { sortArtifacts } from "./lib/sort";
 import { useDragDropImport } from "./hooks/useDragDropImport";
@@ -46,7 +42,6 @@ function App() {
   const [contentMatched, setContentMatched] = useState<Set<string> | null>(
     null,
   );
-  const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
 
   const reload = useCallback(async () => {
     try {
@@ -66,31 +61,6 @@ function App() {
 
   useEffect(() => {
     void reload();
-  }, [reload]);
-
-  // 起動時に Settings を読み、Inbox が設定済みなら自動 scan
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      try {
-        const s = await loadSettings();
-        if (cancelled) return;
-        setSettings(s);
-        if (s.inboxPath) {
-          try {
-            await scanAndImportInbox();
-            if (!cancelled) await reload();
-          } catch {
-            // 起動 scan の失敗はサイレント（UI ボタン操作で再試行可）
-          }
-        }
-      } catch {
-        // settings 読み込みエラーは無視（デフォルトを使う）
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
   }, [reload]);
 
   const { hovering: dragHovering, message: dragMessage } = useDragDropImport(
@@ -117,12 +87,8 @@ function App() {
   }, [filter.searchInContent, filter.search]);
 
   const filtered = useMemo(() => {
-    const base = applyFilter(library.artifacts, filter);
-    const narrowed =
-      contentMatched !== null
-        ? base.filter((a) => contentMatched.has(a.id))
-        : base;
-    return sortArtifacts(narrowed, sortKey);
+    const base = applyFilter(library.artifacts, filter, contentMatched);
+    return sortArtifacts(base, sortKey);
   }, [library.artifacts, filter, sortKey, contentMatched]);
 
   // filtered の長さが縮んだら focused を clamp
@@ -274,11 +240,6 @@ function App() {
           ドラッグ＆ドロップ: {dragMessage}
         </div>
       )}
-      <InboxBar
-        settings={settings}
-        onSettingsChange={setSettings}
-        onImported={() => void reload()}
-      />
       <div className={`app-body${sidebarOpen ? "" : " sidebar-collapsed"}`}>
         <aside className="app-sidebar">
           <button
