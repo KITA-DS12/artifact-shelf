@@ -1273,50 +1273,13 @@ html {
   gap: 10px;
 }
 
-.html-view-toolbar {
-  display: inline-flex;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
-  overflow: hidden;
-  width: fit-content;
-}
-
-.html-view-toolbar button {
-  font: inherit;
-  font-size: 12px;
-  padding: 5px 12px;
-  border: none;
-  background: var(--bg-sub);
-  cursor: pointer;
-  color: var(--fg-sub);
-  letter-spacing: 0.02em;
-}
-
-.html-view-toolbar button + button {
-  border-left: 1px solid var(--border-strong);
-}
-
-.html-view-toolbar button[aria-pressed="true"] {
-  background-color: var(--indigo);
-  color: var(--bg-sub);
-}
-
 .html-view-frame {
   width: 100%;
-  /* 通常モードでは JS で高さを内容に合わせて伸ばす（シームレス） */
+  /* 高さは inject script からの postMessage で内容に合わせて伸ばす */
   border: 0;
   background-color: transparent;
   display: block;
   overflow: hidden;
-}
-
-/* 安全プレビューは JS 不可のため、内部スクロールを許可した固定高さに */
-.html-view-frame.is-fixed {
-  height: 72vh;
-  overflow: auto;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background-color: #ffffff;
 }
 
 /* ───────── 編集フォーム ───────── */
@@ -1551,7 +1514,6 @@ html {
   }
 
   .btn-primary,
-  .html-view-toolbar button[aria-pressed="true"],
   .form-actions button[type="submit"] {
     background-color: var(--indigo);
     color: var(--bg);

@@ -46,6 +46,10 @@ export async function openWithDefault(path: string): Promise<void> {
   await invoke("open_with_default", { path });
 }
 
+export async function openExternalUrl(url: string): Promise<void> {
+  await invoke("open_external_url", { url });
+}
+
 export async function copyToClipboard(text: string): Promise<void> {
   await invoke("copy_to_clipboard", { text });
 }
