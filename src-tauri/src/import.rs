@@ -67,26 +67,42 @@ pub struct ImportResult {
     pub skipped_unsupported: Vec<String>,
 }
 
+/// 重複判定用のキー。canonicalize に成功すればその文字列、失敗すれば素の path 文字列。
+///
+/// canonicalize は symlink 解決、`.` / `..` の正規化、相対パスの絶対化、
+/// 大文字小文字（APFS デフォルトは case-insensitive）を吸収するため、
+/// `~/Downloads/foo.md` と `/Users/me/Downloads/foo.md` が同じファイルでも、
+/// `path` 文字列の単純比較では別物扱いになるのを防げる。
+fn dedup_key(path: &Path) -> String {
+    std::fs::canonicalize(path)
+        .map(|p| p.to_string_lossy().to_string())
+        .unwrap_or_else(|_| path.to_string_lossy().to_string())
+}
+
 pub fn import_paths(library: &mut Library, paths: &[PathBuf]) -> ImportResult {
     let existing: HashSet<String> = library
         .artifacts
         .iter()
-        .map(|a| a.source_path.clone())
+        .map(|a| dedup_key(Path::new(&a.source_path)))
         .collect();
     let mut result = ImportResult::default();
+    let mut session_keys: HashSet<String> = HashSet::new();
+
     for path in paths {
-        let path_str = path.to_string_lossy().to_string();
-        if existing.contains(&path_str) {
-            result.skipped_duplicates.push(path_str);
+        let display_path = path.to_string_lossy().to_string();
+        let key = dedup_key(path);
+        if existing.contains(&key) || session_keys.contains(&key) {
+            result.skipped_duplicates.push(display_path);
             continue;
         }
         match build_artifact(path) {
             Ok(artifact) => {
+                session_keys.insert(key);
                 result.added.push(artifact.clone());
                 library.artifacts.push(artifact);
             }
             Err(_) => {
-                result.skipped_unsupported.push(path_str);
+                result.skipped_unsupported.push(display_path);
             }
         }
     }
@@ -193,5 +209,51 @@ mod tests {
         assert!(json.contains("\"added\""));
         assert!(json.contains("\"skippedDuplicates\""));
         assert!(json.contains("\"skippedUnsupported\""));
+    }
+
+    #[test]
+    fn dedup_key_handles_dot_segments_via_canonicalize() {
+        // 同じ実体に対する別表記（`./`, `../subdir/file`）が canonicalize で
+        // 同一キーに正規化されることを確認。
+        let tmp = TempDir::new().unwrap();
+        let nested = tmp.path().join("inner");
+        fs::create_dir(&nested).unwrap();
+        let canonical = write_file(&tmp, "a.md", "x");
+
+        // tmp/./a.md と tmp/inner/../a.md は同じファイル
+        let via_dot = tmp.path().join("./a.md");
+        let via_parent = nested.join("../a.md");
+
+        let k1 = dedup_key(&canonical);
+        let k2 = dedup_key(&via_dot);
+        let k3 = dedup_key(&via_parent);
+
+        assert_eq!(k1, k2);
+        assert_eq!(k1, k3);
+    }
+
+    #[test]
+    fn import_paths_dedupes_via_canonical_path() {
+        // 同じ実体への 2 つの表記を同一インポートで渡しても 1 件にしかならない。
+        let tmp = TempDir::new().unwrap();
+        let inner = tmp.path().join("d");
+        fs::create_dir(&inner).unwrap();
+        let canonical = write_file(&tmp, "a.md", "x");
+        let via_parent = inner.join("../a.md");
+
+        let mut lib = Library::empty();
+        let result = import_paths(&mut lib, &[canonical.clone(), via_parent.clone()]);
+
+        assert_eq!(result.added.len(), 1);
+        assert_eq!(result.skipped_duplicates.len(), 1);
+        assert_eq!(lib.artifacts.len(), 1);
+    }
+
+    #[test]
+    fn dedup_key_falls_back_to_lossy_when_canonicalize_fails() {
+        // 存在しないパスは canonicalize が Err を返すので、入力文字列がそのままキーになる。
+        let bogus = Path::new("/__nonexistent__/__abcxyz__/foo.md");
+        let key = dedup_key(bogus);
+        assert_eq!(key, bogus.to_string_lossy().to_string());
     }
 }
