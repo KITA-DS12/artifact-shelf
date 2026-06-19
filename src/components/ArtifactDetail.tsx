@@ -388,14 +388,13 @@ function TitleField({
     const next = draft.trim();
     if (next && next !== value) {
       void onSave(next);
-    } else {
-      setDraft(value);
     }
+    // draft の value 同期は useInlineEdit の effect (`!editing` で value 追従) が担う。
     setEditing(false);
   }
 
   function cancel() {
-    setDraft(value);
+    // 同上。setEditing(false) のあと hook の effect が draft を value に戻す。
     setEditing(false);
   }
 
