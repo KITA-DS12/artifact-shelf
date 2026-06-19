@@ -30,7 +30,7 @@ describe("HtmlView", () => {
     expect(frame.getAttribute("srcdoc")).toBe(content);
   });
 
-  it("通常プレビューでは srcDoc に高さ通知スクリプトが挟まる", async () => {
+  it("通常プレビューでは srcDoc に高さ通知 + アンカークリック intercept スクリプトが挟まる", async () => {
     render(<HtmlView content="<body><p>x</p></body>" />);
     await userEvent.click(
       screen.getByRole("button", { name: /通常プレビュー/ }),
@@ -41,6 +41,9 @@ describe("HtmlView", () => {
     expect(srcdoc).toContain("</body>");
     // 元の <p> も残っていること
     expect(srcdoc).toContain("<p>x</p>");
+    // アンカーのクリックを intercept する handler が含まれること
+    expect(srcdoc).toContain("scrollIntoView");
+    expect(srcdoc).toContain("preventDefault");
   });
 
   it("安全プレビューでは scrolling=auto（内側スクロール許可）", () => {

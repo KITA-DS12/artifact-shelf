@@ -6,15 +6,19 @@ type Props = {
   content: string;
 };
 
-// 通常プレビュー時にだけ srcDoc 末尾へ差し込む高さ通知スクリプト。
+// 通常プレビュー時にだけ srcDoc 末尾へ差し込むスクリプト。
 // 親から contentDocument を覗かない（= sandbox に allow-same-origin を付けない）構成のため、
 // 内側スクリプトから postMessage 経由で高さを通知する。
-// 識別子 ARTIFACT_SHELF_RESIZE で他の message と混ざらないようにする。
+//
+// あわせて、目次のような <a href="#xxx"> クリックを intercept する。sandbox 制限下では
+// about:srcdoc への hash ナビゲーションがブロックされ、ドキュメントが真っ白になる挙動が
+// 確認されているため、preventDefault → scrollIntoView で同一ドキュメント内スクロールに
+// 置き換える。
 const RESIZE_NOTIFIER = `
 <script>
 (function () {
-  if (window.__asResizeInstalled) return;
-  window.__asResizeInstalled = true;
+  if (window.__asInstalled) return;
+  window.__asInstalled = true;
   function notify() {
     var h = Math.max(
       document.body ? document.body.scrollHeight : 0,
@@ -22,12 +26,34 @@ const RESIZE_NOTIFIER = `
     );
     parent.postMessage({ type: 'ARTIFACT_SHELF_RESIZE', height: h }, '*');
   }
+  function handleClick(e) {
+    var el = e.target;
+    while (el && el !== document.documentElement) {
+      if (el.tagName === 'A') break;
+      el = el.parentNode;
+    }
+    if (!el || el.tagName !== 'A') return;
+    var href = el.getAttribute('href');
+    if (!href || href.charAt(0) !== '#' || href.length < 2) return;
+    e.preventDefault();
+    var id = decodeURIComponent(href.slice(1));
+    var target =
+      document.getElementById(id) ||
+      document.querySelector('[name="' + CSS.escape(id) + '"]') ||
+      document.querySelector('a[name="' + CSS.escape(id) + '"]');
+    if (target && typeof target.scrollIntoView === 'function') {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // scroll で高さは変わらないが、念のため親側にも通知して位置同期を促す
+      setTimeout(notify, 200);
+    }
+  }
   function setup() {
     notify();
     if (typeof ResizeObserver !== 'undefined' && document.body) {
       new ResizeObserver(function () { notify(); }).observe(document.body);
     }
     [100, 300, 800, 1500].forEach(function (d) { setTimeout(notify, d); });
+    document.addEventListener('click', handleClick, true);
   }
   if (document.readyState === 'complete' || document.readyState === 'interactive') setup();
   else window.addEventListener('DOMContentLoaded', setup);
