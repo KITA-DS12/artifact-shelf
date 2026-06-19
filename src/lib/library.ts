@@ -72,3 +72,14 @@ export async function relinkArtifact(
 ): Promise<Artifact> {
   return invoke<Artifact>("relink_artifact", { id, newPath });
 }
+
+export async function loadScrollPosition(id: string): Promise<number | null> {
+  return invoke<number | null>("load_scroll_position", { id });
+}
+
+export async function saveScrollPosition(
+  id: string,
+  position: number,
+): Promise<void> {
+  await invoke("save_scroll_position", { id, position });
+}

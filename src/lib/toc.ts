@@ -17,6 +17,7 @@ export function slugify(text: string): string {
  * フェンス付きコードブロック内の `#` は見出しとして扱わない。
  */
 export function generateToc(markdown: string): TocEntry[] {
+  if (!markdown) return [];
   const lines = markdown.split(/\r?\n/);
   const entries: TocEntry[] = [];
   let inFence = false;

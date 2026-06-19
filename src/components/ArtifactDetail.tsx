@@ -9,6 +9,8 @@ import {
   openWithDefault,
   copyToClipboard,
   relinkArtifact,
+  loadScrollPosition,
+  saveScrollPosition,
 } from "../lib/library";
 import { MarkdownView } from "./MarkdownView";
 import { HtmlView } from "./HtmlView";
@@ -71,6 +73,42 @@ export function ArtifactDetail({
       cancelled = true;
     };
   }, [artifact.id, missing]);
+
+  // 保存されたスクロール位置を復元（state.kind が "ready" になった後）
+  useEffect(() => {
+    if (state.kind !== "ready") return;
+    let cancelled = false;
+    void loadScrollPosition(artifact.id).then((y) => {
+      if (cancelled || y === null) return;
+      // 画像 / iframe のレイアウト確定を待ってから移動
+      window.setTimeout(() => {
+        if (!cancelled) window.scrollTo({ top: y, behavior: "auto" });
+      }, 250);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [state.kind, artifact.id]);
+
+  // スクロール時に位置を debounce 保存
+  useEffect(() => {
+    if (missing || state.kind !== "ready") return;
+    const id = artifact.id;
+    let saveTimer: number | undefined;
+    function handleScroll() {
+      if (saveTimer) window.clearTimeout(saveTimer);
+      saveTimer = window.setTimeout(() => {
+        void saveScrollPosition(id, window.scrollY).catch(() => {});
+      }, 300);
+    }
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (saveTimer) window.clearTimeout(saveTimer);
+      // unmount 時に最後の位置を即保存
+      void saveScrollPosition(id, window.scrollY).catch(() => {});
+    };
+  }, [artifact.id, missing, state.kind]);
 
   const patch = useCallback(
     async (partial: Partial<ArtifactUpdate>) => {
