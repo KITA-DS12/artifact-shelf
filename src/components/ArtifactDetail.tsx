@@ -14,6 +14,7 @@ import { MarkdownView } from "./MarkdownView";
 import { HtmlView } from "./HtmlView";
 import { generateToc, type TocEntry } from "../lib/toc";
 import { toDate } from "../lib/format";
+import { isRead } from "../lib/read-state";
 import { CrossIcon, PencilIcon, PlusIcon, StarIcon } from "./icons";
 
 type Props = {
@@ -146,15 +147,16 @@ export function ArtifactDetail({
               </span>
             </>
           )}
-          <button
-            type="button"
-            className={`read-pill ${artifact.isRead ? "is-read" : "is-unread"}`}
-            onClick={() => void patch({ isRead: !artifact.isRead })}
-            aria-pressed={artifact.isRead}
-            title="クリックで未読/既読を切替"
+          <span
+            className={`read-pill ${isRead(artifact) ? "is-read" : "is-unread"}`}
+            title={
+              isRead(artifact)
+                ? `最終閲覧: ${artifact.openedAt}`
+                : "まだ詳細を開いたことがありません"
+            }
           >
-            {artifact.isRead ? "既読" : "未読"}
-          </button>
+            {isRead(artifact) ? "既読" : "未読"}
+          </span>
           <button
             type="button"
             className={`star-button${artifact.isFavorite ? " is-on" : ""}`}

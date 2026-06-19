@@ -9,17 +9,17 @@ export type SortKey =
   | "title-asc"
   | "favorite-first";
 
+/**
+ * 既読/未読の状態。詳細を一度でも開いたら自動で既読（`openedAt` の有無で判定）。
+ * 手動操作は不要。
+ */
 export type ReadState = "all" | "unread" | "read";
-
-/** 開封（事実）状態。`isRead`（自己申告）と独立。 */
-export type OpenedState = "all" | "opened" | "unopened";
 
 export interface LibraryFilter {
   search: string;
   tags: string[];
   fileTypes: FileType[];
   readState: ReadState;
-  openedState: OpenedState;
   favoriteOnly: boolean;
   /** 取り込み日の下限 (YYYY-MM-DD) */
   capturedFrom: string | null;
@@ -34,7 +34,6 @@ export const DEFAULT_FILTER: LibraryFilter = {
   tags: [],
   fileTypes: [],
   readState: "all",
-  openedState: "all",
   favoriteOnly: false,
   capturedFrom: null,
   capturedTo: null,

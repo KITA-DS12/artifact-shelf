@@ -1,5 +1,6 @@
 import type { Artifact } from "../types/artifact";
 import { toDate } from "../lib/format";
+import { isRead } from "../lib/read-state";
 import { StarIcon } from "./icons";
 
 type Props = {
@@ -26,7 +27,7 @@ export function ArtifactCard({
 
   return (
     <article
-      className={`artifact-card${artifact.isRead ? "" : " is-unread"}${missing ? " is-missing" : ""}${selectMode ? " is-selectable" : ""}${selected ? " is-selected" : ""}`}
+      className={`artifact-card${isRead(artifact) ? "" : " is-unread"}${missing ? " is-missing" : ""}${selectMode ? " is-selectable" : ""}${selected ? " is-selected" : ""}`}
       onClick={handleClick}
       role="button"
       tabIndex={0}

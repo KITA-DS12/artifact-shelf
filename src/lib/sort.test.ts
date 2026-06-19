@@ -23,9 +23,13 @@ function make(
 }
 
 describe("sortByUnreadThenCapturedDesc", () => {
-  it("未読を既読より先に並べる", () => {
-    const a = make({ id: "a", capturedAt: "2026-06-10T00:00:00Z", isRead: true });
-    const b = make({ id: "b", capturedAt: "2026-06-09T00:00:00Z", isRead: false });
+  it("未読（openedAt なし）を既読より先に並べる", () => {
+    const a = make({
+      id: "a",
+      capturedAt: "2026-06-10T00:00:00Z",
+      openedAt: "2026-06-19T00:00:00Z",
+    });
+    const b = make({ id: "b", capturedAt: "2026-06-09T00:00:00Z" });
     expect(sortByUnreadThenCapturedDesc([a, b]).map((x) => x.id)).toEqual([
       "b",
       "a",
