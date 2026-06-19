@@ -834,6 +834,33 @@ a:hover {
 
 .detail-toolbar {
   display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.detail-nav {
+  display: flex;
+  gap: 6px;
+}
+
+.nav-button {
+  font: inherit;
+  font-size: 13px;
+  padding: 4px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background-color: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.nav-button:hover:not(:disabled) {
+  background-color: var(--bg-deep);
+}
+
+.nav-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .link-button {
