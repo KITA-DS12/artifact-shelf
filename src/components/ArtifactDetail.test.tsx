@@ -179,18 +179,19 @@ describe("ArtifactDetail", () => {
     expect(onUpdated).toHaveBeenCalled();
   });
 
-  it("既読バッジクリックで isRead をトグル", async () => {
-    const user = userEvent.setup();
+  it("openedAt があると「既読」、なければ「未読」として表示", async () => {
     invokeMock.mockResolvedValueOnce("# A");
-    invokeMock.mockResolvedValueOnce({ ...fixture(), isRead: true });
-    render(<ArtifactDetail artifact={fixture()} onBack={() => {}} />);
-    await user.click(await screen.findByRole("button", { name: "未読" }));
-    await waitFor(() =>
-      expect(invokeMock).toHaveBeenCalledWith("update_artifact", {
-        id: "x",
-        update: expect.objectContaining({ isRead: true }),
-      }),
+    render(
+      <ArtifactDetail
+        artifact={fixture({ openedAt: "2026-06-19T00:00:00Z" })}
+        onBack={() => {}}
+      />,
     );
+    expect(await screen.findByText("既読")).toBeInTheDocument();
+    invokeMock.mockReset();
+    invokeMock.mockResolvedValueOnce("# B");
+    render(<ArtifactDetail artifact={fixture()} onBack={() => {}} />);
+    expect(await screen.findAllByText("未読")).not.toHaveLength(0);
   });
 
   it("星クリックで isFavorite をトグル", async () => {

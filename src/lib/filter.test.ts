@@ -36,7 +36,7 @@ const sample: Artifact[] = [
     title: "Repo Map",
     tags: ["repo"],
     fileType: "html",
-    isRead: true,
+    openedAt: "2026-06-18T05:00:00Z",
     isFavorite: true,
     capturedAt: "2026-06-18T00:00:00Z",
   }),
@@ -112,18 +112,16 @@ describe("applyFilter", () => {
     ).toEqual(["a", "b"]);
   });
 
-  it("openedState=opened は openedAt あり のみ", () => {
-    const opened: Artifact[] = [
+  it("readState=read は openedAt があるもののみ（自動判定）", () => {
+    const items: Artifact[] = [
       make({ id: "x", openedAt: "2026-06-19T00:00:00Z" }),
       make({ id: "y" }),
     ];
     expect(
-      applyFilter(opened, filterWith({ openedState: "opened" })).map((a) => a.id),
+      applyFilter(items, filterWith({ readState: "read" })).map((a) => a.id),
     ).toEqual(["x"]);
     expect(
-      applyFilter(opened, filterWith({ openedState: "unopened" })).map(
-        (a) => a.id,
-      ),
+      applyFilter(items, filterWith({ readState: "unread" })).map((a) => a.id),
     ).toEqual(["y"]);
   });
 

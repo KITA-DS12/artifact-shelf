@@ -1,5 +1,6 @@
 import type { Artifact } from "../types/artifact";
 import type { SortKey } from "../types/filter";
+import { isRead } from "./read-state";
 
 function compareDesc(a: string, b: string): number {
   if (a === b) return 0;
@@ -14,7 +15,9 @@ export function sortByUnreadThenCapturedDesc(
   artifacts: readonly Artifact[],
 ): Artifact[] {
   return [...artifacts].sort((a, b) => {
-    if (a.isRead !== b.isRead) return a.isRead ? 1 : -1;
+    const ra = isRead(a);
+    const rb = isRead(b);
+    if (ra !== rb) return ra ? 1 : -1;
     if (a.capturedAt !== b.capturedAt)
       return compareDesc(a.capturedAt, b.capturedAt);
     return a.title.localeCompare(b.title);

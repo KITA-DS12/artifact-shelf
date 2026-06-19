@@ -1,6 +1,7 @@
 import type { Artifact } from "../types/artifact";
 import type { LibraryFilter } from "../types/filter";
 import { isUnderDirectory } from "./directory-tree";
+import { isRead } from "./read-state";
 
 function matchesSearch(a: Artifact, q: string): boolean {
   const fields: string[] = [a.title, a.note, a.sourcePath, ...a.tags];
@@ -28,10 +29,8 @@ export function applyFilter(
       !filter.fileTypes.includes(a.fileType)
     )
       return false;
-    if (filter.readState === "unread" && a.isRead) return false;
-    if (filter.readState === "read" && !a.isRead) return false;
-    if (filter.openedState === "opened" && !a.openedAt) return false;
-    if (filter.openedState === "unopened" && a.openedAt) return false;
+    if (filter.readState === "unread" && isRead(a)) return false;
+    if (filter.readState === "read" && !isRead(a)) return false;
     if (filter.favoriteOnly && !a.isFavorite) return false;
     if (filter.capturedFrom && capturedDate(a) < filter.capturedFrom)
       return false;

@@ -199,43 +199,6 @@ export function LibraryToolbar({
           </fieldset>
 
           <fieldset>
-            <legend>開封 (事実)</legend>
-            <label>
-              <input
-                type="radio"
-                name="openedState"
-                checked={filter.openedState === "all"}
-                onChange={() =>
-                  onFilterChange({ ...filter, openedState: "all" })
-                }
-              />
-              すべて
-            </label>
-            <label>
-              <input
-                type="radio"
-                name="openedState"
-                checked={filter.openedState === "opened"}
-                onChange={() =>
-                  onFilterChange({ ...filter, openedState: "opened" })
-                }
-              />
-              開いたことがある
-            </label>
-            <label>
-              <input
-                type="radio"
-                name="openedState"
-                checked={filter.openedState === "unopened"}
-                onChange={() =>
-                  onFilterChange({ ...filter, openedState: "unopened" })
-                }
-              />
-              まだ開いていない
-            </label>
-          </fieldset>
-
-          <fieldset>
             <legend>取り込み日</legend>
             <label>
               <span className="filter-sub">From</span>

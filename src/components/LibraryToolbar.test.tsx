@@ -50,8 +50,6 @@ describe("LibraryToolbar", () => {
     expect(screen.getByLabelText("未読")).toBeInTheDocument();
     expect(screen.getByLabelText("既読")).toBeInTheDocument();
     expect(screen.getByLabelText("お気に入りのみ")).toBeInTheDocument();
-    expect(screen.getByLabelText("開いたことがある")).toBeInTheDocument();
-    expect(screen.getByLabelText("まだ開いていない")).toBeInTheDocument();
   });
 
   it("利用可能なタグがチェックボックスとして並ぶ", async () => {
