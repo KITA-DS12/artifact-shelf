@@ -6,8 +6,11 @@ import "highlight.js/styles/github.css";
 import { slugify } from "../lib/toc";
 import { copyToClipboard } from "../lib/library";
 
+import type { RefObject } from "react";
+
 type Props = {
   content: string;
+  rootRef?: RefObject<HTMLDivElement | null>;
 };
 
 function nodeToText(node: ReactNode): string {
@@ -65,9 +68,9 @@ const components: Components = {
   },
 };
 
-export function MarkdownView({ content }: Props) {
+export function MarkdownView({ content, rootRef }: Props) {
   return (
-    <div className="markdown-body">
+    <div className="markdown-body" ref={rootRef}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeHighlight]}

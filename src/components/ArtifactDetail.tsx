@@ -13,7 +13,9 @@ import {
   saveScrollPosition,
 } from "../lib/library";
 import { MarkdownView } from "./MarkdownView";
-import { HtmlView } from "./HtmlView";
+import { HtmlView, type HtmlViewHandle } from "./HtmlView";
+import { FindBar } from "./FindBar";
+import { useFindInPage } from "../hooks/useFindInPage";
 import { generateToc, type TocEntry } from "../lib/toc";
 import { toDate } from "../lib/format";
 import { isRead } from "../lib/read-state";
@@ -50,6 +52,37 @@ export function ArtifactDetail({
 }: Props) {
   const [state, setState] = useState<LoadState>({ kind: "loading" });
   const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [findOpen, setFindOpen] = useState(false);
+  const markdownRef = useRef<HTMLDivElement>(null);
+  const htmlViewRef = useRef<HtmlViewHandle>(null);
+  const find = useFindInPage(markdownRef);
+
+  // Cmd+F / Ctrl+F でページ内検索を開く
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "f") {
+        e.preventDefault();
+        setFindOpen(true);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  // 検索 query が変わるたび HtmlView 側にも転送
+  useEffect(() => {
+    if (artifact.fileType !== "html") return;
+    htmlViewRef.current?.setFindQuery(find.query);
+  }, [find.query, artifact.fileType]);
+
+  // FindBar を閉じたら HtmlView 側もクリア
+  function closeFind() {
+    find.close();
+    setFindOpen(false);
+    if (artifact.fileType === "html") {
+      htmlViewRef.current?.setFindQuery("");
+    }
+  }
 
   useEffect(() => {
     if (missing) {
@@ -163,6 +196,17 @@ export function ArtifactDetail({
 
   return (
     <article className="artifact-detail">
+      {findOpen && (
+        <FindBar
+          query={find.query}
+          count={find.count}
+          currentIndex={find.currentIndex}
+          onChange={find.setQuery}
+          onNext={find.next}
+          onPrev={find.prev}
+          onClose={closeFind}
+        />
+      )}
       <div className="detail-toolbar">
         <button type="button" className="link-button" onClick={onBack}>
           ← ライブラリ
@@ -332,10 +376,10 @@ export function ArtifactDetail({
             </p>
           )}
           {state.kind === "ready" && artifact.fileType === "markdown" && (
-            <MarkdownView content={state.content} />
+            <MarkdownView content={state.content} rootRef={markdownRef} />
           )}
           {state.kind === "ready" && artifact.fileType === "html" && (
-            <HtmlView content={state.content} />
+            <HtmlView content={state.content} ref={htmlViewRef} />
           )}
         </div>
       </div>
