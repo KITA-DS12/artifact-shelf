@@ -48,12 +48,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: ${{ github.ref_name }}
-          releaseName: "Artifact Shelf ${{ github.ref_name }}"
+          releaseName: "Yomikura ${{ github.ref_name }}"
           releaseBody: |
-            Artifact Shelf のリリース。
+            Yomikura（読み蔵）のリリース。
 
             ## macOS
-            `.dmg` を開き、`Artifact Shelf.app` を Applications フォルダにドラッグしてください。
+            `.dmg` を開き、`Yomikura.app` を Applications フォルダにドラッグしてください。
 
             > 初回起動時に「開発元が未確認です」警告が出る場合は、Finder で `.app` を右クリック → 開く で回避できます。
 
