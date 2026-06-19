@@ -1,17 +1,17 @@
 {
-  "name": "artifact-shelf",
+  "name": "yomikura",
   "private": true,
   "version": "0.1.0",
-  "description": "A local-first desktop library for organizing, tagging, and viewing Markdown and HTML artifacts.",
+  "description": "読み蔵 — Markdown と HTML の AI 生成物を、ローカルで整理・閲覧する書庫風デスクトップアプリ",
   "license": "MIT",
   "author": "KITA-DS12",
   "repository": {
     "type": "git",
-    "url": "https://github.com/KITA-DS12/artifact-shelf"
+    "url": "https://github.com/KITA-DS12/yomikura"
   },
-  "homepage": "https://github.com/KITA-DS12/artifact-shelf",
+  "homepage": "https://github.com/KITA-DS12/yomikura",
   "bugs": {
-    "url": "https://github.com/KITA-DS12/artifact-shelf/issues"
+    "url": "https://github.com/KITA-DS12/yomikura/issues"
   },
   "type": "module",
   "scripts": {
@@ -24,27 +24,27 @@
     "test:rust": "cd src-tauri && cargo test"
   },
   "dependencies": {
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-dialog": "^2.7.1",
     "@tauri-apps/plugin-opener": "^2",
     "highlight.js": "^11.11.1",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
     "react-markdown": "^10.1.0",
     "rehype-highlight": "^7.0.2",
     "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2",
-    "@testing-library/jest-dom": "^6.6.3",
-    "@testing-library/react": "^16.1.0",
-    "@testing-library/user-event": "^14.5.2",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.6.0",
-    "jsdom": "^26.0.0",
     "typescript": "~5.8.3",
     "vite": "^7.0.4",
-    "vitest": "^2.1.8"
+    "@tauri-apps/cli": "^2",
+    "vitest": "^2.1.8",
+    "@testing-library/react": "^16.1.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/user-event": "^14.5.2",
+    "jsdom": "^26.0.0"
   }
 }

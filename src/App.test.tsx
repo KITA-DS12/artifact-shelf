@@ -29,7 +29,7 @@ describe("App", () => {
   it("アプリ名を見出しとして表示する", () => {
     render(<App />);
     expect(
-      screen.getByRole("heading", { level: 1, name: "Artifact Shelf" }),
+      screen.getByRole("heading", { level: 1, name: "Yomikura" }),
     ).toBeInTheDocument();
   });
 
