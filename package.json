@@ -1,7 +1,7 @@
 {
   "name": "yomikura",
   "private": true,
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "読み蔵 — Markdown と HTML の AI 生成物を、ローカルで整理・閲覧する書庫風デスクトップアプリ",
   "license": "MIT",
   "author": "KITA-DS12",
