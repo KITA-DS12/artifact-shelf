@@ -53,9 +53,18 @@ jobs:
             Yomikura（読み蔵）のリリース。
 
             ## macOS
-            `.dmg` を開き、`Yomikura.app` を Applications フォルダにドラッグしてください。
+            1. `.dmg` を開き、`Yomikura.app` を Applications フォルダにドラッグ
+            2. **初回のみターミナルで quarantine を外す**:
+               ```sh
+               xattr -dr com.apple.quarantine /Applications/Yomikura.app
+               ```
+            3. Launchpad / Spotlight から `Yomikura` を起動
+            4. 「マルウェア検証ができませんでした」と出たら:
+               - **システム設定 → プライバシーとセキュリティ** をスクロール
+               - 「`Yomikura.app` は ... ブロックされました」の右の **「このまま開く」** をクリック
+               - 認証後にもう一度起動 → 「開く」を選択
 
-            > 初回起動時に「開発元が未確認です」警告が出る場合は、Finder で `.app` を右クリック → 開く で回避できます。
+            > Apple Developer Program 未加入のため公証なし。詳しい背景は [README](https://github.com/KITA-DS12/yomikura#macos) を参照。
 
             ## Windows
             `.msi` または `.exe` を実行してインストールしてください。
