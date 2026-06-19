@@ -17,6 +17,11 @@ export interface Artifact {
   generatedAt: string | null;
   importedAt: string;
   updatedAt: string;
+  /**
+   * 詳細プレビューで直近に開いた時刻（事実）。`isRead`（自己申告）と独立。
+   * 一度も開いていなければ null。
+   */
+  openedAt: string | null;
   isRead: boolean;
   isFavorite: boolean;
   source: Source;

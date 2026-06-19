@@ -45,6 +45,7 @@ mod tests {
             generated_at: None,
             imported_at: "2026-06-18T00:00:00Z".into(),
             updated_at: "2026-06-18T00:00:00Z".into(),
+            opened_at: None,
             is_read: false,
             is_favorite: false,
             source: Source::Unknown,

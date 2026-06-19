@@ -40,6 +40,10 @@ pub struct Artifact {
     pub generated_at: Option<String>,
     pub imported_at: String,
     pub updated_at: String,
+    /// 直近で詳細プレビューを開いた時刻（事実）。`is_read`（自己申告）とは独立。
+    /// 一度も開いていない場合は None。
+    #[serde(default)]
+    pub opened_at: Option<String>,
     pub is_read: bool,
     pub is_favorite: bool,
     pub source: Source,
@@ -69,6 +73,12 @@ impl Library {
 pub enum StoreError {
     Io(String),
     Parse(String),
+    /// 既知スキーマより新しいバージョンの library.json を開こうとした。
+    /// 黙って読み込んで save し直すとデータ欠落するため refuse する。
+    UnsupportedVersion {
+        found: u32,
+        max_supported: u32,
+    },
 }
 
 impl std::fmt::Display for StoreError {
@@ -76,11 +86,22 @@ impl std::fmt::Display for StoreError {
         match self {
             StoreError::Io(m) => write!(f, "I/O error: {m}"),
             StoreError::Parse(m) => write!(f, "Parse error: {m}"),
+            StoreError::UnsupportedVersion { found, max_supported } => write!(
+                f,
+                "サポート外のスキーマバージョンです (found={found}, max_supported={max_supported}). 新しいバージョンのアプリで開いてください."
+            ),
         }
     }
 }
 
 impl std::error::Error for StoreError {}
+
+/// 旧バージョンから現行バージョンへの migration の入口。
+/// 現状 stub（v0 / v1 → v1 は no-op）。
+/// v2 を導入したときに、ここに「v1 → v2 で追加されたフィールドのデフォルト埋め」を書く。
+fn migrate(library: &mut Library) {
+    library.version = CURRENT_SCHEMA_VERSION;
+}
 
 pub fn load_library(path: &Path) -> Result<Library, StoreError> {
     if !path.exists() {
@@ -89,6 +110,19 @@ pub fn load_library(path: &Path) -> Result<Library, StoreError> {
     let content = fs::read_to_string(path).map_err(|e| StoreError::Io(e.to_string()))?;
     let mut library: Library =
         serde_json::from_str(&content).map_err(|e| StoreError::Parse(e.to_string()))?;
+
+    // version を見ずに deserialize すると、未知フィールドが落ちた状態で save し直されて
+    // データ欠落する。サポート上限を超える version は refuse する。
+    if library.version > CURRENT_SCHEMA_VERSION {
+        return Err(StoreError::UnsupportedVersion {
+            found: library.version,
+            max_supported: CURRENT_SCHEMA_VERSION,
+        });
+    }
+    if library.version < CURRENT_SCHEMA_VERSION {
+        migrate(&mut library);
+    }
+
     // 旧フォーマットでは captured_at が無い。imported_at で埋める。
     for a in &mut library.artifacts {
         if a.captured_at.is_empty() {
@@ -96,6 +130,14 @@ pub fn load_library(path: &Path) -> Result<Library, StoreError> {
         }
     }
     Ok(library)
+}
+
+/// `id` に対応する Artifact の `opened_at` を `now_iso` で上書きして保存する。
+/// 該当 ID が無い場合は no-op。
+pub fn touch_opened_at(library: &mut Library, id: &str, now_iso: &str) {
+    if let Some(a) = library.artifacts.iter_mut().find(|a| a.id == id) {
+        a.opened_at = Some(now_iso.to_string());
+    }
 }
 
 fn tmp_path(path: &Path) -> PathBuf {
@@ -159,6 +201,7 @@ mod tests {
             generated_at: Some("2026-06-18".into()),
             imported_at: "2026-06-18T10:00:00+09:00".into(),
             updated_at: "2026-06-18T10:00:00+09:00".into(),
+            opened_at: None,
             is_read: false,
             is_favorite: false,
             source: Source::Claude,
@@ -323,6 +366,87 @@ mod tests {
         let a = &loaded.artifacts[0];
         assert_eq!(a.captured_at, "2026-06-18T10:00:00+09:00");
         assert_eq!(a.generated_at.as_deref(), Some("2026-06-10"));
+    }
+
+    #[test]
+    fn load_refuses_future_schema_version() {
+        let tmp = TempDir::new().unwrap();
+        let path = tmp.path().join("library.json");
+        let future_json = r#"{"version": 999, "artifacts": []}"#;
+        fs::write(&path, future_json).unwrap();
+
+        let result = load_library(&path);
+        match result {
+            Err(StoreError::UnsupportedVersion {
+                found,
+                max_supported,
+            }) => {
+                assert_eq!(found, 999);
+                assert_eq!(max_supported, CURRENT_SCHEMA_VERSION);
+            }
+            other => panic!("expected UnsupportedVersion, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn load_migrates_older_version_to_current() {
+        // 仮の v0 を v1 として受け入れる（stub）
+        let tmp = TempDir::new().unwrap();
+        let path = tmp.path().join("library.json");
+        let v0_json = r#"{"version": 0, "artifacts": []}"#;
+        fs::write(&path, v0_json).unwrap();
+
+        let loaded = load_library(&path).unwrap();
+        assert_eq!(loaded.version, CURRENT_SCHEMA_VERSION);
+    }
+
+    #[test]
+    fn touch_opened_at_records_timestamp() {
+        let mut lib = Library {
+            version: CURRENT_SCHEMA_VERSION,
+            artifacts: vec![sample_artifact()],
+        };
+        assert!(lib.artifacts[0].opened_at.is_none());
+        touch_opened_at(&mut lib, "01HXYZ", "2026-06-20T00:00:00Z");
+        assert_eq!(
+            lib.artifacts[0].opened_at.as_deref(),
+            Some("2026-06-20T00:00:00Z")
+        );
+    }
+
+    #[test]
+    fn touch_opened_at_is_noop_for_unknown_id() {
+        let mut lib = Library {
+            version: CURRENT_SCHEMA_VERSION,
+            artifacts: vec![sample_artifact()],
+        };
+        touch_opened_at(&mut lib, "missing", "2026-06-20T00:00:00Z");
+        assert!(lib.artifacts[0].opened_at.is_none());
+    }
+
+    #[test]
+    fn load_keeps_opened_at_none_when_missing() {
+        let tmp = TempDir::new().unwrap();
+        let path = tmp.path().join("library.json");
+        let json = r#"{
+            "version": 1,
+            "artifacts": [{
+                "id": "x",
+                "title": "x",
+                "sourcePath": "/tmp/a.md",
+                "fileType": "markdown",
+                "tags": [],
+                "importedAt": "2026-06-18T10:00:00Z",
+                "updatedAt": "2026-06-18T10:00:00Z",
+                "isRead": false,
+                "isFavorite": false,
+                "source": "Unknown",
+                "note": ""
+            }]
+        }"#;
+        fs::write(&path, json).unwrap();
+        let loaded = load_library(&path).unwrap();
+        assert!(loaded.artifacts[0].opened_at.is_none());
     }
 
     #[test]
