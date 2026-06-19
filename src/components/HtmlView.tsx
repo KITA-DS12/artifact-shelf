@@ -370,7 +370,8 @@ export const HtmlView = forwardRef<HtmlViewHandle, Props>(function HtmlView(
         if (!Number.isFinite(topInFrame)) return;
         const rect = iframe.getBoundingClientRect();
         const absoluteTop = window.scrollY + rect.top + topInFrame;
-        window.scrollTo({ top: absoluteTop - 24, behavior: "smooth" });
+        // 検索バーや見出しと被らないよう余裕を取る
+        window.scrollTo({ top: absoluteTop - 180, behavior: "smooth" });
         return;
       }
     };

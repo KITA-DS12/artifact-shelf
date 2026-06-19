@@ -109,8 +109,9 @@ export function useFindInPage(
     if (!r) return;
     setHighlight(HL_CURRENT, [r]);
     const rect = r.getBoundingClientRect();
+    // 検索バーは sticky で上部に出ているので、その下に余裕を持って配置
     window.scrollTo({
-      top: window.scrollY + rect.top - 120,
+      top: window.scrollY + rect.top - 180,
       behavior: "smooth",
     });
   }, [currentIndex, matches]);
