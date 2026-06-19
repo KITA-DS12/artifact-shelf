@@ -179,7 +179,9 @@ function App() {
   }
 
   function changeView(view: LibraryView) {
-    setFilter({ ...filter, view });
+    // view を切り替えると、active 側で選んでいたディレクトリ絞り込みも一旦解除する
+    // （ゴミ箱でディレクトリツリーを出していないため、見えない絞り込みが残るのを避ける）
+    setFilter({ ...filter, view, directory: null });
     setSelectedId(null);
   }
 
