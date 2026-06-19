@@ -104,6 +104,38 @@ const INJECT_SCRIPT = `
       }
     }
 
+    function installCopyButtons() {
+      try {
+        var pres = document.querySelectorAll('pre');
+        pres.forEach(function (pre) {
+          if (pre.getAttribute('data-yomikura-copy')) return;
+          pre.setAttribute('data-yomikura-copy', '1');
+          // 既存 pre を wrapper で囲んで position:absolute のボタンを置く
+          var wrap = document.createElement('div');
+          wrap.className = 'yomikura-code-wrap';
+          wrap.style.cssText = 'position:relative;';
+          var parent = pre.parentNode;
+          if (!parent) return;
+          parent.insertBefore(wrap, pre);
+          wrap.appendChild(pre);
+
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.textContent = 'Copy';
+          btn.className = 'yomikura-copy-btn';
+          btn.style.cssText =
+            'position:absolute;top:6px;right:6px;font:inherit;font-size:11px;padding:2px 10px;border:1px solid rgba(0,0,0,0.2);border-radius:3px;background:rgba(255,255,255,0.9);cursor:pointer;color:#333;z-index:1;';
+          btn.addEventListener('click', function () {
+            var text = pre.innerText || pre.textContent || '';
+            window.parent.postMessage({ type: 'YOMIKURA_COPY', text: text }, '*');
+            btn.textContent = 'Copied';
+            setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+          });
+          wrap.appendChild(btn);
+        });
+      } catch (e) { /* noop */ }
+    }
+
     function setup() {
       notify();
       try {
@@ -113,6 +145,9 @@ const INJECT_SCRIPT = `
       } catch (_) {}
       [100, 300, 800, 1500].forEach(function (d) { setTimeout(notify, d); });
       document.addEventListener('click', handleClick, true);
+      installCopyButtons();
+      // 動的に pre が追加されるケースに備え、少し遅らせて再実行
+      [300, 800, 1500].forEach(function (d) { setTimeout(installCopyButtons, d); });
     }
 
     if (document.readyState === 'complete' || document.readyState === 'interactive') {
@@ -159,6 +194,13 @@ export function HtmlView({ content }: Props) {
       if (data.type === "YOMIKURA_OPEN_EXTERNAL") {
         const url = String(data.url ?? "");
         if (url) void openExternalUrl(url).catch(() => {});
+        return;
+      }
+      if (data.type === "YOMIKURA_COPY") {
+        const text = String(data.text ?? "");
+        if (text) void import("../lib/library").then(({ copyToClipboard }) =>
+          copyToClipboard(text).catch(() => {}),
+        );
         return;
       }
       if (data.type === "YOMIKURA_SCROLL_TO") {

@@ -1273,6 +1273,38 @@ html {
   border-radius: var(--radius);
   border: 1px solid var(--border);
   overflow-x: auto;
+  margin: 0;
+}
+
+.code-block {
+  position: relative;
+  margin: 12px 0;
+}
+
+.code-copy-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font: inherit;
+  font-size: 11px;
+  padding: 2px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background-color: var(--bg-sub);
+  color: var(--fg-sub);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.1s ease;
+}
+
+.code-block:hover .code-copy-btn,
+.code-copy-btn:focus {
+  opacity: 1;
+}
+
+.code-copy-btn:hover {
+  color: var(--fg);
+  border-color: var(--fg-sub);
 }
 
 .markdown-body pre code {
