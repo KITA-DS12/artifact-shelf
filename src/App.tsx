@@ -4,6 +4,7 @@ import { ArtifactList } from "./components/ArtifactList";
 import { ArtifactDetail } from "./components/ArtifactDetail";
 import { LibraryToolbar } from "./components/LibraryToolbar";
 import { ConfirmDialog } from "./components/ConfirmDialog";
+import { DirectoryTree } from "./components/DirectoryTree";
 import {
   checkMissingArtifacts,
   deleteArtifacts,
@@ -33,6 +34,7 @@ function App() {
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [deleteTargets, setDeleteTargets] = useState<string[] | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const reload = useCallback(async () => {
     try {
@@ -142,7 +144,7 @@ function App() {
   }
 
   return (
-    <main className="container">
+    <main className="container app-shell">
       {overlay}
       <header className="app-header">
         <div className="app-header-row">
@@ -169,28 +171,65 @@ function App() {
           ドラッグ＆ドロップ: {dragMessage}
         </div>
       )}
-      <LibraryToolbar
-        filter={filter}
-        onFilterChange={setFilter}
-        sortKey={sortKey}
-        onSortChange={setSortKey}
-        availableTags={availableTags}
-        totalCount={library.artifacts.length}
-        matchedCount={filtered.length}
-        selectMode={selectMode}
-        selectedCount={selectedIds.size}
-        onEnterSelectMode={() => setSelectMode(true)}
-        onExitSelectMode={exitSelectMode}
-        onRequestDelete={() => setDeleteTargets([...selectedIds])}
-      />
-      <ArtifactList
-        artifacts={filtered}
-        missingIds={missingIds}
-        selectMode={selectMode}
-        selectedIds={selectedIds}
-        onSelect={(a) => setSelectedId(a.id)}
-        onToggleSelect={toggleSelect}
-      />
+      <div className={`app-body${sidebarOpen ? "" : " sidebar-collapsed"}`}>
+        <aside className="app-sidebar">
+          <button
+            type="button"
+            className="sidebar-toggle"
+            aria-pressed={sidebarOpen}
+            onClick={() => setSidebarOpen((v) => !v)}
+            title={sidebarOpen ? "サイドバーを閉じる" : "サイドバーを開く"}
+          >
+            {sidebarOpen ? "◂" : "▸"}
+          </button>
+          {sidebarOpen && (
+            <DirectoryTree
+              artifacts={library.artifacts}
+              selected={filter.directory}
+              onSelect={(directory) => setFilter({ ...filter, directory })}
+            />
+          )}
+        </aside>
+        <div className="app-content">
+          <LibraryToolbar
+            filter={filter}
+            onFilterChange={setFilter}
+            sortKey={sortKey}
+            onSortChange={setSortKey}
+            availableTags={availableTags}
+            totalCount={library.artifacts.length}
+            matchedCount={filtered.length}
+            selectMode={selectMode}
+            selectedCount={selectedIds.size}
+            onEnterSelectMode={() => setSelectMode(true)}
+            onExitSelectMode={exitSelectMode}
+            onRequestDelete={() => setDeleteTargets([...selectedIds])}
+          />
+          {filter.directory && (
+            <div className="active-dir-chip">
+              <span className="muted">ディレクトリ:</span>{" "}
+              <span className="active-dir-path" title={filter.directory}>
+                {filter.directory}
+              </span>
+              <button
+                type="button"
+                className="link-button"
+                onClick={() => setFilter({ ...filter, directory: null })}
+              >
+                解除
+              </button>
+            </div>
+          )}
+          <ArtifactList
+            artifacts={filtered}
+            missingIds={missingIds}
+            selectMode={selectMode}
+            selectedIds={selectedIds}
+            onSelect={(a) => setSelectedId(a.id)}
+            onToggleSelect={toggleSelect}
+          />
+        </div>
+      </div>
       <ConfirmDialog
         open={deleteTargets !== null}
         title="ライブラリから削除しますか？"

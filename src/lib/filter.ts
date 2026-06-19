@@ -1,5 +1,6 @@
 import type { Artifact } from "../types/artifact";
 import type { LibraryFilter } from "../types/filter";
+import { isUnderDirectory } from "./directory-tree";
 
 function matchesSearch(a: Artifact, q: string): boolean {
   const fields: string[] = [a.title, a.note, a.sourcePath, ...a.tags];
@@ -33,6 +34,8 @@ export function applyFilter(
     if (filter.capturedFrom && capturedDate(a) < filter.capturedFrom)
       return false;
     if (filter.capturedTo && capturedDate(a) > filter.capturedTo) return false;
+    if (filter.directory && !isUnderDirectory(a.sourcePath, filter.directory))
+      return false;
     return true;
   });
 }
