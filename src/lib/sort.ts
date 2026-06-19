@@ -40,6 +40,14 @@ export function sortArtifacts(
       return [...artifacts].sort((a, b) =>
         compareDesc(a.updatedAt, b.updatedAt),
       );
+    case "opened-desc":
+      // 開いていないものは末尾。開いたものは openedAt 降順。
+      return [...artifacts].sort((a, b) => {
+        if (a.openedAt && b.openedAt) return compareDesc(a.openedAt, b.openedAt);
+        if (a.openedAt) return -1;
+        if (b.openedAt) return 1;
+        return a.title.localeCompare(b.title);
+      });
     case "title-asc":
       return [...artifacts].sort((a, b) => a.title.localeCompare(b.title));
     case "favorite-first":

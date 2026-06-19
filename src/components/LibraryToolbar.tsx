@@ -27,6 +27,7 @@ const SORT_KEYS: SortKey[] = [
   "captured-desc",
   "captured-asc",
   "updated-desc",
+  "opened-desc",
   "title-asc",
   "favorite-first",
 ];
@@ -194,6 +195,43 @@ export function LibraryToolbar({
                 }
               />
               お気に入りのみ
+            </label>
+          </fieldset>
+
+          <fieldset>
+            <legend>開封 (事実)</legend>
+            <label>
+              <input
+                type="radio"
+                name="openedState"
+                checked={filter.openedState === "all"}
+                onChange={() =>
+                  onFilterChange({ ...filter, openedState: "all" })
+                }
+              />
+              すべて
+            </label>
+            <label>
+              <input
+                type="radio"
+                name="openedState"
+                checked={filter.openedState === "opened"}
+                onChange={() =>
+                  onFilterChange({ ...filter, openedState: "opened" })
+                }
+              />
+              開いたことがある
+            </label>
+            <label>
+              <input
+                type="radio"
+                name="openedState"
+                checked={filter.openedState === "unopened"}
+                onChange={() =>
+                  onFilterChange({ ...filter, openedState: "unopened" })
+                }
+              />
+              まだ開いていない
             </label>
           </fieldset>
 

@@ -112,6 +112,21 @@ describe("applyFilter", () => {
     ).toEqual(["a", "b"]);
   });
 
+  it("openedState=opened は openedAt あり のみ", () => {
+    const opened: Artifact[] = [
+      make({ id: "x", openedAt: "2026-06-19T00:00:00Z" }),
+      make({ id: "y" }),
+    ];
+    expect(
+      applyFilter(opened, filterWith({ openedState: "opened" })).map((a) => a.id),
+    ).toEqual(["x"]);
+    expect(
+      applyFilter(opened, filterWith({ openedState: "unopened" })).map(
+        (a) => a.id,
+      ),
+    ).toEqual(["y"]);
+  });
+
   it("複数条件は AND で適用される", () => {
     expect(
       applyFilter(

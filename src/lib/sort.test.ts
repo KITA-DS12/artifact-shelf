@@ -124,4 +124,23 @@ describe("sortArtifacts", () => {
   it("favorite-first はお気に入りを先に", () => {
     expect(sortArtifacts(items, "favorite-first")[0].id).toBe("a");
   });
+
+  it("opened-desc は openedAt 降順、未開封は末尾", () => {
+    const a = make({ id: "a", capturedAt: "2026-06-01T00:00:00Z" });
+    const b = make({
+      id: "b",
+      capturedAt: "2026-06-02T00:00:00Z",
+      openedAt: "2026-06-19T00:00:00Z",
+    });
+    const c = make({
+      id: "c",
+      capturedAt: "2026-06-03T00:00:00Z",
+      openedAt: "2026-06-15T00:00:00Z",
+    });
+    expect(sortArtifacts([a, b, c], "opened-desc").map((x) => x.id)).toEqual([
+      "b",
+      "c",
+      "a",
+    ]);
+  });
 });
