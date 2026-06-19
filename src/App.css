@@ -1302,6 +1302,83 @@ html {
   opacity: 1;
 }
 
+/* ───────── ページ内検索 ───────── */
+
+::highlight(yomikura-find) {
+  background-color: #fff39a;
+  color: inherit;
+}
+
+::highlight(yomikura-find-current) {
+  background-color: #ffb84a;
+  color: inherit;
+}
+
+.find-bar {
+  position: sticky;
+  top: 12px;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  background-color: var(--bg-sub);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: 0 2px 10px rgba(31, 35, 40, 0.08);
+}
+
+.find-bar input {
+  flex: 1;
+  font: inherit;
+  font-size: 13px;
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background-color: var(--bg);
+  color: inherit;
+}
+
+.find-bar input:focus {
+  outline: none;
+  border-color: var(--indigo);
+  box-shadow: 0 0 0 2px var(--indigo-soft);
+}
+
+.find-count {
+  font-size: 12px;
+  color: var(--fg-sub);
+  font-variant-numeric: tabular-nums;
+  min-width: 50px;
+  text-align: right;
+}
+
+.find-button {
+  font: inherit;
+  font-size: 13px;
+  padding: 3px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background-color: transparent;
+  color: var(--fg);
+  cursor: pointer;
+}
+
+.find-button:hover:not(:disabled) {
+  background-color: var(--bg-deep);
+}
+
+.find-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.find-close {
+  font-size: 16px;
+  line-height: 1;
+}
+
 .code-copy-btn:hover {
   color: var(--fg);
   border-color: var(--fg-sub);

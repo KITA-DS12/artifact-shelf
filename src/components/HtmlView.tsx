@@ -1,8 +1,20 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { openExternalUrl } from "../lib/library";
 
 type Props = {
   content: string;
+};
+
+export type HtmlViewHandle = {
+  /** iframe 内ページ内検索の query を設定。空文字でクリア */
+  setFindQuery: (query: string) => void;
 };
 
 // srcDoc 末尾に差し込む補助スクリプト。
@@ -10,11 +22,11 @@ type Props = {
 // 役割:
 // 1. iframe の高さを内容に合わせて親へ通知（postMessage）
 // 2. リンククリックを 3 つに振り分け
-//    - "#xxx" 同一ドキュメント内アンカー → scrollIntoView
+//    - "#xxx" 同一ドキュメント内アンカー → 親に位置を通知して親でスクロール
 //    - "http(s)://..." 外部 URL → 親に通知してブラウザで開く
 //    - その他 (mailto / javascript / 相対パスなど) → preventDefault のみで無害化
-//
-// すべて try/catch で囲い、内部 HTML が壊れていても他機能を巻き込まない。
+// 3. <pre> に Copy ボタンを動的挿入
+// 4. ページ内検索: 親から YOMIKURA_FIND を受けると CSS Custom Highlight API で highlight
 const INJECT_SCRIPT = `
 <script>
 (function () {
@@ -63,10 +75,6 @@ const INJECT_SCRIPT = `
         var href = a.getAttribute('href');
         if (!href) return;
 
-        // 同一ドキュメント内アンカー
-        // iframe は scrolling="no" + 内容に合わせた auto height で運用しているため、
-        // iframe 内の scrollIntoView は viewport 全体が見えている扱いで動かない。
-        // 親に target の位置を通知してホストウィンドウ側でスクロールさせる。
         if (href.charAt(0) === '#') {
           if (href.length < 2) {
             e.preventDefault();
@@ -90,14 +98,12 @@ const INJECT_SCRIPT = `
           return;
         }
 
-        // 外部 URL → 親に通知してブラウザで開く
         if (isHttp(href)) {
           e.preventDefault();
           parent.postMessage({ type: 'YOMIKURA_OPEN_EXTERNAL', url: href }, '*');
           return;
         }
 
-        // mailto / javascript / 相対パス等は preventDefault のみ
         e.preventDefault();
       } catch (err) {
         console.error('[yomikura] click handler error:', err);
@@ -110,7 +116,6 @@ const INJECT_SCRIPT = `
         pres.forEach(function (pre) {
           if (pre.getAttribute('data-yomikura-copy')) return;
           pre.setAttribute('data-yomikura-copy', '1');
-          // 既存 pre を wrapper で囲んで position:absolute のボタンを置く
           var wrap = document.createElement('div');
           wrap.className = 'yomikura-code-wrap';
           wrap.style.cssText = 'position:relative;';
@@ -136,6 +141,65 @@ const INJECT_SCRIPT = `
       } catch (e) { /* noop */ }
     }
 
+    function installFindStyles() {
+      try {
+        var style = document.createElement('style');
+        style.textContent =
+          '::highlight(yomikura-find){background-color:#fff39a;color:inherit;}';
+        document.head.appendChild(style);
+      } catch (_) {}
+    }
+
+    function performFind(query) {
+      try {
+        var hi = window.CSS && window.CSS.highlights;
+        if (!hi) return 0;
+        try { hi.delete('yomikura-find'); } catch (_) {}
+        if (!query) return 0;
+        var root = document.body;
+        if (!root) return 0;
+        var matches = [];
+        var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+        var q = query.toLowerCase();
+        while (walker.nextNode()) {
+          var node = walker.currentNode;
+          var text = (node.nodeValue || '').toLowerCase();
+          var idx = 0;
+          while (true) {
+            var found = text.indexOf(q, idx);
+            if (found === -1) break;
+            try {
+              var range = document.createRange();
+              range.setStart(node, found);
+              range.setEnd(node, found + query.length);
+              matches.push(range);
+            } catch (_) {}
+            idx = found + query.length;
+          }
+        }
+        if (matches.length > 0 && window.Highlight) {
+          try {
+            var hl = new window.Highlight();
+            matches.forEach(function (r) { hl.add(r); });
+            hi.set('yomikura-find', hl);
+            // 最初の match までスクロール
+            var firstRect = matches[0].getBoundingClientRect();
+            parent.postMessage({
+              type: 'YOMIKURA_SCROLL_TO',
+              topInFrame: firstRect.top + (window.scrollY || 0),
+            }, '*');
+          } catch (_) {}
+        }
+        parent.postMessage({
+          type: 'YOMIKURA_FIND_RESULT',
+          count: matches.length,
+        }, '*');
+        return matches.length;
+      } catch (e) {
+        return 0;
+      }
+    }
+
     function setup() {
       notify();
       try {
@@ -146,8 +210,14 @@ const INJECT_SCRIPT = `
       [100, 300, 800, 1500].forEach(function (d) { setTimeout(notify, d); });
       document.addEventListener('click', handleClick, true);
       installCopyButtons();
-      // 動的に pre が追加されるケースに備え、少し遅らせて再実行
+      installFindStyles();
       [300, 800, 1500].forEach(function (d) { setTimeout(installCopyButtons, d); });
+      window.addEventListener('message', function (e) {
+        if (!e.data || typeof e.data !== 'object') return;
+        if (e.data.type === 'YOMIKURA_FIND') {
+          performFind(e.data.query || '');
+        }
+      });
     }
 
     if (document.readyState === 'complete' || document.readyState === 'interactive') {
@@ -169,16 +239,27 @@ function injectHelper(content: string): string {
   return content + INJECT_SCRIPT;
 }
 
-export function HtmlView({ content }: Props) {
+export const HtmlView = forwardRef<HtmlViewHandle, Props>(function HtmlView(
+  { content },
+  ref,
+) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [autoHeight, setAutoHeight] = useState<number | null>(null);
 
-  // ローカルで自分が取り込んだファイルだけを開くアプリなので、外部からの悪意ある
-  // HTML を想定する必要は薄い。allow-same-origin は付けない（escape 防止）ので
-  // 親側の cookie / localStorage / IPC は読めない。
   const sandbox = "allow-scripts";
 
   const srcDoc = useMemo(() => injectHelper(content), [content]);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      setFindQuery: (query: string) => {
+        const w = iframeRef.current?.contentWindow;
+        w?.postMessage({ type: "YOMIKURA_FIND", query }, "*");
+      },
+    }),
+    [],
+  );
 
   useEffect(() => {
     const handler = (event: MessageEvent) => {
@@ -198,9 +279,10 @@ export function HtmlView({ content }: Props) {
       }
       if (data.type === "YOMIKURA_COPY") {
         const text = String(data.text ?? "");
-        if (text) void import("../lib/library").then(({ copyToClipboard }) =>
-          copyToClipboard(text).catch(() => {}),
-        );
+        if (text)
+          void import("../lib/library").then(({ copyToClipboard }) =>
+            copyToClipboard(text).catch(() => {}),
+          );
         return;
       }
       if (data.type === "YOMIKURA_SCROLL_TO") {
@@ -209,9 +291,7 @@ export function HtmlView({ content }: Props) {
         const topInFrame = Number(data.topInFrame ?? 0);
         if (!Number.isFinite(topInFrame)) return;
         const rect = iframe.getBoundingClientRect();
-        // iframe の document 内座標 → ホストウィンドウの絶対座標
         const absoluteTop = window.scrollY + rect.top + topInFrame;
-        // 上に少しマージン（読みやすさのため）
         window.scrollTo({ top: absoluteTop - 24, behavior: "smooth" });
         return;
       }
@@ -235,4 +315,4 @@ export function HtmlView({ content }: Props) {
       />
     </div>
   );
-}
+});
