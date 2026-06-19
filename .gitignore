@@ -32,5 +32,7 @@ coverage
 .vitest-cache
 
 # Local-only docs (review outputs, ad-hoc artifacts)
-# 公式ドキュメントを置く場合は個別に -f で add する
-docs/
+# docs/ の中身はデフォルト ignore、README で参照する screenshots だけ tracked。
+# 公式ドキュメントを追加するときはここに `!docs/<name>` で例外を足す。
+docs/*
+!docs/screenshots/
