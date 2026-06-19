@@ -1,6 +1,6 @@
 [package]
 name = "yomikura"
-version = "0.3.0"
+version = "0.3.1"
 description = "Yomikura — Markdown と HTML の AI 生成物をローカルで整理・閲覧する書庫風デスクトップアプリ"
 authors = ["KITA-DS12"]
 license = "MIT"
