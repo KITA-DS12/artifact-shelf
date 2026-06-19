@@ -146,7 +146,7 @@ function App() {
       {overlay}
       <header className="app-header">
         <div className="app-header-row">
-          <h1>Artifact Shelf</h1>
+          <h1>Yomikura</h1>
           <ImportButton onImported={() => void reload()} />
         </div>
         <p className="tagline">

@@ -15,8 +15,48 @@ fn library_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     Ok(dir.join("library.json"))
 }
 
+/// 旧 bundle identifier (com.kita.artifact-shelf) で書かれていた library.json を
+/// 新 identifier 配下にコピーする。旧側は触らない（取り消し可能なように）。
+///
+/// 返り値: コピーを実施した場合 true。
+fn copy_legacy_if_present(
+    legacy: &Path,
+    current: &Path,
+) -> Result<bool, std::io::Error> {
+    if current.exists() {
+        return Ok(false);
+    }
+    if !legacy.exists() {
+        return Ok(false);
+    }
+    if let Some(parent) = current.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    std::fs::copy(legacy, current)?;
+    Ok(true)
+}
+
+fn migrate_legacy_library(app: &tauri::AppHandle) {
+    let Ok(current) = library_path(app) else {
+        return;
+    };
+    let Some(current_dir) = current.parent() else {
+        return;
+    };
+    let Some(parent) = current_dir.parent() else {
+        return;
+    };
+    let legacy = parent
+        .join("com.kita.artifact-shelf")
+        .join("library.json");
+    if let Err(e) = copy_legacy_if_present(&legacy, &current) {
+        eprintln!("warning: legacy library migration failed: {e}");
+    }
+}
+
 #[tauri::command]
 fn load_library(app: tauri::AppHandle) -> Result<store::Library, String> {
+    migrate_legacy_library(&app);
     let path = library_path(&app)?;
     store::load_library(&path).map_err(|e| e.to_string())
 }
@@ -154,6 +194,55 @@ fn relink_artifact(
     let updated = files::relink(&mut library, &id, &new_path, &now)?;
     store::save_library(&lib_path, &library).map_err(|e| e.to_string())?;
     Ok(updated)
+}
+
+#[cfg(test)]
+mod legacy_migration_tests {
+    use super::*;
+    use std::fs;
+    use tempfile::TempDir;
+
+    #[test]
+    fn copies_when_only_legacy_exists() {
+        let tmp = TempDir::new().unwrap();
+        let legacy = tmp.path().join("legacy/library.json");
+        let current = tmp.path().join("current/library.json");
+        fs::create_dir_all(legacy.parent().unwrap()).unwrap();
+        fs::write(&legacy, r#"{"version":1,"artifacts":[]}"#).unwrap();
+
+        let copied = copy_legacy_if_present(&legacy, &current).unwrap();
+        assert!(copied);
+        assert!(current.exists());
+        assert!(legacy.exists(), "旧側は残る");
+        assert_eq!(fs::read_to_string(&current).unwrap(), fs::read_to_string(&legacy).unwrap());
+    }
+
+    #[test]
+    fn does_nothing_when_current_already_exists() {
+        let tmp = TempDir::new().unwrap();
+        let legacy = tmp.path().join("legacy/library.json");
+        let current = tmp.path().join("current/library.json");
+        fs::create_dir_all(legacy.parent().unwrap()).unwrap();
+        fs::create_dir_all(current.parent().unwrap()).unwrap();
+        fs::write(&legacy, "LEGACY").unwrap();
+        fs::write(&current, "CURRENT").unwrap();
+
+        let copied = copy_legacy_if_present(&legacy, &current).unwrap();
+        assert!(!copied);
+        // 上書きしない
+        assert_eq!(fs::read_to_string(&current).unwrap(), "CURRENT");
+    }
+
+    #[test]
+    fn does_nothing_when_legacy_missing() {
+        let tmp = TempDir::new().unwrap();
+        let legacy = tmp.path().join("legacy/library.json");
+        let current = tmp.path().join("current/library.json");
+
+        let copied = copy_legacy_if_present(&legacy, &current).unwrap();
+        assert!(!copied);
+        assert!(!current.exists());
+    }
 }
 
 #[cfg(test)]
