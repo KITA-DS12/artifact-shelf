@@ -20,6 +20,8 @@ export interface LibraryFilter {
   capturedFrom: string | null;
   /** 取り込み日の上限 (YYYY-MM-DD) */
   capturedTo: string | null;
+  /** 選択中のディレクトリ（このプレフィックスに収まるものだけ表示） */
+  directory: string | null;
 }
 
 export const DEFAULT_FILTER: LibraryFilter = {
@@ -30,6 +32,7 @@ export const DEFAULT_FILTER: LibraryFilter = {
   favoriteOnly: false,
   capturedFrom: null,
   capturedTo: null,
+  directory: null,
 };
 
 export const SORT_LABELS: Record<SortKey, string> = {

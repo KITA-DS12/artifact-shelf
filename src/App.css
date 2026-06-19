@@ -89,6 +89,211 @@ a:hover {
   padding: 40px 28px 64px;
 }
 
+.app-shell {
+  max-width: 1280px;
+}
+
+.app-body {
+  display: grid;
+  grid-template-columns: 244px 1fr;
+  gap: 24px;
+}
+
+.app-body.sidebar-collapsed {
+  grid-template-columns: 36px 1fr;
+}
+
+@media (max-width: 760px) {
+  .app-body,
+  .app-body.sidebar-collapsed {
+    grid-template-columns: 1fr;
+  }
+}
+
+.app-sidebar {
+  position: relative;
+  border-right: 1px solid var(--border);
+  padding-right: 12px;
+}
+
+.sidebar-collapsed .app-sidebar {
+  padding-right: 0;
+}
+
+.sidebar-toggle {
+  position: absolute;
+  top: -8px;
+  right: -12px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid var(--border-strong);
+  background-color: var(--bg-sub);
+  color: var(--fg-sub);
+  cursor: pointer;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.sidebar-toggle:hover {
+  color: var(--fg);
+  border-color: var(--fg-sub);
+}
+
+.app-content {
+  min-width: 0;
+}
+
+/* ───────── ディレクトリツリー ───────── */
+
+.dir-tree {
+  font-size: 13px;
+}
+
+.dir-tree-header {
+  display: flex;
+  align-items: baseline;
+  margin-bottom: 6px;
+}
+
+.dir-tree-title {
+  font-family: var(--serif);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fg-sub);
+}
+
+.dir-tree-empty {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--fg-muted);
+  font-style: italic;
+}
+
+.dir-tree-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 16px;
+}
+
+.dir-tree > .dir-all + .dir-tree-list,
+.dir-tree > .dir-tree-empty {
+  padding-left: 0;
+}
+
+.dir-tree-list > .dir-tree-node > .dir-tree-list {
+  padding-left: 14px;
+  border-left: 1px solid var(--border);
+  margin-left: 6px;
+}
+
+.dir-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 4px;
+  border-radius: 4px;
+  width: 100%;
+  font: inherit;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  min-width: 0;
+}
+
+.dir-row:hover {
+  background-color: var(--bg-deep);
+}
+
+.dir-row.is-selected,
+.dir-row.dir-all.is-selected {
+  background-color: var(--indigo-soft);
+  color: var(--indigo);
+}
+
+.dir-all {
+  margin-bottom: 4px;
+}
+
+.dir-toggle {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  color: var(--fg-sub);
+  font-size: 10px;
+}
+
+.dir-toggle-leaf {
+  cursor: default;
+  color: var(--fg-muted);
+  font-size: 9px;
+}
+
+.dir-label {
+  flex: 1;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+  min-width: 0;
+  text-align: left;
+}
+
+.dir-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.dir-count {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.dir-row.is-selected .dir-count {
+  color: var(--indigo);
+}
+
+.active-dir-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  margin: -8px 0 12px;
+}
+
+.active-dir-path {
+  font-family: var(--mono);
+  color: var(--fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 60ch;
+}
+
 /* ───────── ヘッダ ───────── */
 
 .app-header {
