@@ -138,6 +138,14 @@ export function ArtifactDetail({
               <span>生成 {artifact.generatedAt}</span>
             </>
           )}
+          {artifact.openedAt && (
+            <>
+              <span className="dot">·</span>
+              <span title={artifact.openedAt}>
+                最終閲覧 {toDate(artifact.openedAt)}
+              </span>
+            </>
+          )}
           <button
             type="button"
             className={`read-pill ${artifact.isRead ? "is-read" : "is-unread"}`}

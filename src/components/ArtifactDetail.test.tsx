@@ -120,6 +120,26 @@ describe("ArtifactDetail", () => {
     );
   });
 
+  it("openedAt があれば最終閲覧を表示する", async () => {
+    invokeMock.mockResolvedValueOnce("# A");
+    render(
+      <ArtifactDetail
+        artifact={fixture({ openedAt: "2026-06-19T08:30:00Z" })}
+        onBack={() => {}}
+      />,
+    );
+    expect(
+      await screen.findByText(/最終閲覧 2026-06-19/),
+    ).toBeInTheDocument();
+  });
+
+  it("openedAt が null のときは最終閲覧を表示しない", async () => {
+    invokeMock.mockResolvedValueOnce("# A");
+    render(<ArtifactDetail artifact={fixture()} onBack={() => {}} />);
+    await screen.findByRole("heading", { level: 1, name: "認証レビュー" });
+    expect(screen.queryByText(/最終閲覧/)).not.toBeInTheDocument();
+  });
+
   it("HTML artifact のときは iframe プレビューを表示する", async () => {
     invokeMock.mockResolvedValueOnce("<h1>hi</h1>");
     render(

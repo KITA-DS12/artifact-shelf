@@ -30,6 +30,8 @@ export function applyFilter(
       return false;
     if (filter.readState === "unread" && a.isRead) return false;
     if (filter.readState === "read" && !a.isRead) return false;
+    if (filter.openedState === "opened" && !a.openedAt) return false;
+    if (filter.openedState === "unopened" && a.openedAt) return false;
     if (filter.favoriteOnly && !a.isFavorite) return false;
     if (filter.capturedFrom && capturedDate(a) < filter.capturedFrom)
       return false;
