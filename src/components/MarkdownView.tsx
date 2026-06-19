@@ -1,9 +1,10 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import "highlight.js/styles/github.css";
 import { slugify } from "../lib/toc";
+import { copyToClipboard } from "../lib/library";
 
 type Props = {
   content: string;
@@ -21,6 +22,28 @@ function nodeToText(node: ReactNode): string {
   return "";
 }
 
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      type="button"
+      className="code-copy-btn"
+      aria-label="コードをコピー"
+      onClick={async () => {
+        try {
+          await copyToClipboard(text);
+          setCopied(true);
+          window.setTimeout(() => setCopied(false), 1500);
+        } catch {
+          // 失敗時は表示変えない
+        }
+      }}
+    >
+      {copied ? "Copied" : "Copy"}
+    </button>
+  );
+}
+
 const components: Components = {
   h1: ({ children }) => (
     <h1 id={slugify(nodeToText(children))}>{children}</h1>
@@ -31,6 +54,15 @@ const components: Components = {
   h3: ({ children }) => (
     <h3 id={slugify(nodeToText(children))}>{children}</h3>
   ),
+  pre: ({ children }) => {
+    const text = nodeToText(children);
+    return (
+      <div className="code-block">
+        <pre>{children}</pre>
+        <CopyButton text={text} />
+      </div>
+    );
+  },
 };
 
 export function MarkdownView({ content }: Props) {
