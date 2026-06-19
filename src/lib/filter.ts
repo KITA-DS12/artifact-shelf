@@ -2,13 +2,12 @@ import type { Artifact } from "../types/artifact";
 import type { LibraryFilter } from "../types/filter";
 
 function matchesSearch(a: Artifact, q: string): boolean {
-  const fields: string[] = [
-    a.title,
-    a.note,
-    a.sourcePath,
-    ...a.tags,
-  ];
+  const fields: string[] = [a.title, a.note, a.sourcePath, ...a.tags];
   return fields.some((f) => f.toLowerCase().includes(q));
+}
+
+function capturedDate(a: Artifact): string {
+  return a.capturedAt.slice(0, 10);
 }
 
 export function applyFilter(
@@ -31,15 +30,9 @@ export function applyFilter(
     if (filter.readState === "unread" && a.isRead) return false;
     if (filter.readState === "read" && !a.isRead) return false;
     if (filter.favoriteOnly && !a.isFavorite) return false;
-    if (
-      filter.sources.length > 0 &&
-      !filter.sources.includes(a.source)
-    )
+    if (filter.capturedFrom && capturedDate(a) < filter.capturedFrom)
       return false;
-    if (filter.generatedFrom && a.generatedAt < filter.generatedFrom)
-      return false;
-    if (filter.generatedTo && a.generatedAt > filter.generatedTo)
-      return false;
+    if (filter.capturedTo && capturedDate(a) > filter.capturedTo) return false;
     return true;
   });
 }

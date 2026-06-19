@@ -9,7 +9,8 @@ function make(overrides: Partial<Artifact> & Pick<Artifact, "id">): Artifact {
     sourcePath: `/tmp/${overrides.id}.md`,
     fileType: "markdown",
     tags: [],
-    generatedAt: "2026-06-18",
+    capturedAt: "2026-06-18T00:00:00Z",
+    generatedAt: null,
     importedAt: "2026-06-18T00:00:00Z",
     updatedAt: "2026-06-18T00:00:00Z",
     isRead: false,
@@ -27,8 +28,7 @@ const sample: Artifact[] = [
     tags: ["review", "auth"],
     note: "Next.js",
     isRead: false,
-    source: "Claude",
-    generatedAt: "2026-06-10",
+    capturedAt: "2026-06-10T00:00:00Z",
   }),
   make({
     id: "b",
@@ -37,8 +37,7 @@ const sample: Artifact[] = [
     fileType: "html",
     isRead: true,
     isFavorite: true,
-    source: "ChatGPT",
-    generatedAt: "2026-06-18",
+    capturedAt: "2026-06-18T00:00:00Z",
   }),
   make({
     id: "c",
@@ -46,8 +45,7 @@ const sample: Artifact[] = [
     tags: ["misc"],
     note: "auth に関するメモ",
     isRead: false,
-    source: "Manual",
-    generatedAt: "2026-05-01",
+    capturedAt: "2026-05-01T00:00:00Z",
   }),
 ];
 
@@ -104,19 +102,11 @@ describe("applyFilter", () => {
     ).toEqual(["b"]);
   });
 
-  it("生成元で絞り込める", () => {
-    expect(
-      applyFilter(sample, filterWith({ sources: ["Claude", "Manual"] })).map(
-        (a) => a.id,
-      ),
-    ).toEqual(["a", "c"]);
-  });
-
-  it("生成日の期間で絞り込める", () => {
+  it("取り込み日の期間で絞り込める", () => {
     expect(
       applyFilter(
         sample,
-        filterWith({ generatedFrom: "2026-06-01", generatedTo: "2026-06-30" }),
+        filterWith({ capturedFrom: "2026-06-01", capturedTo: "2026-06-30" }),
       ).map((a) => a.id),
     ).toEqual(["a", "b"]);
   });
