@@ -23,6 +23,11 @@ type Props = {
   onBack: () => void;
   onUpdated?: (updated: Artifact) => void;
   onDelete?: () => void;
+  /** 直前の Artifact id（フィルタ + ソート適用済み順序）。先頭なら null */
+  prevId?: string | null;
+  /** 次の Artifact id。末尾なら null */
+  nextId?: string | null;
+  onNavigate?: (id: string) => void;
 };
 
 type LoadState =
@@ -37,6 +42,9 @@ export function ArtifactDetail({
   onBack,
   onUpdated,
   onDelete,
+  prevId,
+  nextId,
+  onNavigate,
 }: Props) {
   const [state, setState] = useState<LoadState>({ kind: "loading" });
   const [actionMessage, setActionMessage] = useState<string | null>(null);
@@ -121,6 +129,28 @@ export function ArtifactDetail({
         <button type="button" className="link-button" onClick={onBack}>
           ← ライブラリ
         </button>
+        <div className="detail-nav">
+          <button
+            type="button"
+            className="nav-button"
+            onClick={() => prevId && onNavigate?.(prevId)}
+            disabled={!prevId}
+            aria-label="前の Artifact"
+            title="K / ←"
+          >
+            ◂ 前
+          </button>
+          <button
+            type="button"
+            className="nav-button"
+            onClick={() => nextId && onNavigate?.(nextId)}
+            disabled={!nextId}
+            aria-label="次の Artifact"
+            title="J / →"
+          >
+            次 ▸
+          </button>
+        </div>
       </div>
       <header className="detail-header">
         <TitleField

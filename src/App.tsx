@@ -82,13 +82,28 @@ function App() {
 
   const focusedArtifact = filtered[focusedIndex] ?? null;
 
+  const selectedPos = selectedId
+    ? filtered.findIndex((a) => a.id === selectedId)
+    : -1;
+  const prevId = selectedPos > 0 ? filtered[selectedPos - 1].id : null;
+  const nextId =
+    selectedPos >= 0 && selectedPos < filtered.length - 1
+      ? filtered[selectedPos + 1].id
+      : null;
+
   useKeyboardShortcuts({
     onNext: () => {
-      if (selectedId !== null) return; // 詳細画面では別途 Issue #65 で扱う
+      if (selectedId !== null) {
+        if (nextId) setSelectedId(nextId);
+        return;
+      }
       setFocusedIndex((i) => Math.min(i + 1, Math.max(0, filtered.length - 1)));
     },
     onPrev: () => {
-      if (selectedId !== null) return;
+      if (selectedId !== null) {
+        if (prevId) setSelectedId(prevId);
+        return;
+      }
       setFocusedIndex((i) => Math.max(i - 1, 0));
     },
     onSearch: () => {
@@ -161,6 +176,9 @@ function App() {
           onBack={() => setSelectedId(null)}
           onUpdated={() => void reload()}
           onDelete={() => setDeleteTargets([selected.id])}
+          prevId={prevId}
+          nextId={nextId}
+          onNavigate={(id) => setSelectedId(id)}
         />
         <ConfirmDialog
           open={deleteTargets !== null}
