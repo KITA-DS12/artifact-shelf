@@ -76,8 +76,33 @@ fn read_artifact_content(app: tauri::AppHandle, id: String) -> Result<String, St
     Ok(content)
 }
 
+/// アプリが「開いて良い」と判断する拡張子の集合。
+///
+/// library.json が（手動 / 同期サービス経由 / 第三者プロセスから）改変されると、
+/// 任意パスを open コマンドに渡せる余地が残る。\.app / \.command / \.sh のような
+/// 実行可能パスや拡張子なしの実行ファイルを開かせないために、Markdown / HTML 系の
+/// ホワイトリストで弾く。
+fn has_allowed_extension(path: &str) -> bool {
+    let lower = path.to_ascii_lowercase();
+    matches!(
+        Path::new(&lower).extension().and_then(|e| e.to_str()),
+        Some("md") | Some("mdx") | Some("html") | Some("htm")
+    )
+}
+
+fn guard_path(path: &str) -> Result<(), String> {
+    if has_allowed_extension(path) {
+        Ok(())
+    } else {
+        Err(format!(
+            "対応外の拡張子のため開けません: {path} （.md / .mdx / .html / .htm のみ）"
+        ))
+    }
+}
+
 #[tauri::command]
 fn open_in_finder(app: tauri::AppHandle, path: String) -> Result<(), String> {
+    guard_path(&path)?;
     app.opener()
         .reveal_item_in_dir(path)
         .map_err(|e| e.to_string())
@@ -85,6 +110,7 @@ fn open_in_finder(app: tauri::AppHandle, path: String) -> Result<(), String> {
 
 #[tauri::command]
 fn open_with_default(app: tauri::AppHandle, path: String) -> Result<(), String> {
+    guard_path(&path)?;
     app.opener()
         .open_path(path, None::<String>)
         .map_err(|e| e.to_string())
@@ -128,6 +154,46 @@ fn relink_artifact(
     let updated = files::relink(&mut library, &id, &new_path, &now)?;
     store::save_library(&lib_path, &library).map_err(|e| e.to_string())?;
     Ok(updated)
+}
+
+#[cfg(test)]
+mod open_guard_tests {
+    use super::*;
+
+    #[test]
+    fn allows_markdown_and_html() {
+        for p in [
+            "/tmp/a.md",
+            "/tmp/a.MD",
+            "/tmp/a.mdx",
+            "/tmp/a.html",
+            "/tmp/a.HTM",
+        ] {
+            assert!(has_allowed_extension(p), "{p} should be allowed");
+        }
+    }
+
+    #[test]
+    fn rejects_executables_and_no_extension() {
+        for p in [
+            "/Applications/Mail.app",
+            "/tmp/install.command",
+            "/tmp/run.sh",
+            "/tmp/binary",
+            "/tmp/script",
+            "/tmp/a.txt",
+            "/tmp/a.pdf",
+        ] {
+            assert!(!has_allowed_extension(p), "{p} should be rejected");
+        }
+    }
+
+    #[test]
+    fn guard_path_returns_error_with_path_in_message() {
+        let err = guard_path("/tmp/a.txt").unwrap_err();
+        assert!(err.contains("/tmp/a.txt"));
+        assert!(err.contains("対応外"));
+    }
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
