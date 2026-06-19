@@ -15,6 +15,7 @@ import { HtmlView, type HtmlViewHandle } from "./HtmlView";
 import { FindBar } from "./FindBar";
 import { useFindInPage } from "../hooks/useFindInPage";
 import { useFindInIframe } from "../hooks/useFindInIframe";
+import { useInlineEdit } from "../hooks/useInlineEdit";
 import { generateToc, type TocEntry } from "../lib/toc";
 import { toDate } from "../lib/format";
 import { isRead } from "../lib/read-state";
@@ -380,37 +381,27 @@ function TitleField({
   value: string;
   onSave: (next: string) => void | Promise<void>;
 }) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(value);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (!editing) setDraft(value);
-  }, [value, editing]);
-
-  useEffect(() => {
-    if (editing) inputRef.current?.focus();
-  }, [editing]);
+  const { editing, setEditing, draft, setDraft, ref } =
+    useInlineEdit<HTMLInputElement>(value);
 
   function commit() {
     const next = draft.trim();
     if (next && next !== value) {
       void onSave(next);
-    } else {
-      setDraft(value);
     }
+    // draft の value 同期は useInlineEdit の effect (`!editing` で value 追従) が担う。
     setEditing(false);
   }
 
   function cancel() {
-    setDraft(value);
+    // 同上。setEditing(false) のあと hook の effect が draft を value に戻す。
     setEditing(false);
   }
 
   if (editing) {
     return (
       <input
-        ref={inputRef}
+        ref={ref}
         type="text"
         className="title-input"
         aria-label="タイトル"
@@ -524,17 +515,8 @@ function NoteField({
   value: string;
   onSave: (next: string) => void | Promise<void>;
 }) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(value);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    if (!editing) setDraft(value);
-  }, [value, editing]);
-
-  useEffect(() => {
-    if (editing) textareaRef.current?.focus();
-  }, [editing]);
+  const { editing, setEditing, draft, setDraft, ref } =
+    useInlineEdit<HTMLTextAreaElement>(value);
 
   function commit() {
     if (draft !== value) {
@@ -546,7 +528,7 @@ function NoteField({
   if (editing) {
     return (
       <textarea
-        ref={textareaRef}
+        ref={ref}
         className="note-input"
         aria-label="メモ"
         value={draft}
