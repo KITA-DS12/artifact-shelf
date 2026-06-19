@@ -2,6 +2,7 @@ pub mod delete;
 pub mod edit;
 pub mod files;
 pub mod import;
+pub mod search;
 pub mod store;
 
 use chrono::Utc;
@@ -91,6 +92,29 @@ fn update_artifact(
     let updated = edit::apply_update(&mut library, &id, &update, &now)?;
     store::save_library(&lib_path, &library).map_err(|e| e.to_string())?;
     Ok(updated)
+}
+
+#[tauri::command]
+fn search_in_contents(
+    app: tauri::AppHandle,
+    query: String,
+) -> Result<Vec<String>, String> {
+    let lib_path = library_path(&app)?;
+    let library = store::load_library(&lib_path).map_err(|e| e.to_string())?;
+    let mut matched = Vec::new();
+    for a in &library.artifacts {
+        match std::fs::read_to_string(&a.source_path) {
+            Ok(content) => {
+                if search::matches_query(&content, &query) {
+                    matched.push(a.id.clone());
+                }
+            }
+            Err(_) => {
+                // missing / 権限エラーは skip（一覧側で missing バッジが出る）
+            }
+        }
+    }
+    Ok(matched)
 }
 
 #[tauri::command]
@@ -338,6 +362,7 @@ pub fn run() {
             import_artifacts,
             update_artifact,
             delete_artifacts,
+            search_in_contents,
             read_artifact_content,
             open_in_finder,
             open_with_default,

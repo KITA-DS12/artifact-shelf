@@ -124,8 +124,20 @@ export function LibraryToolbar({
           選択
         </button>
       </div>
-      <div className="toolbar-meta muted">
-        {matchedCount} / {totalCount} 件を表示
+      <div className="toolbar-sub">
+        <label className="search-in-content">
+          <input
+            type="checkbox"
+            checked={filter.searchInContent}
+            onChange={(e) =>
+              onFilterChange({ ...filter, searchInContent: e.target.checked })
+            }
+          />
+          本文も検索
+        </label>
+        <span className="toolbar-meta muted">
+          {matchedCount} / {totalCount} 件を表示
+        </span>
       </div>
       {expanded && (
         <div className="filter-panel">

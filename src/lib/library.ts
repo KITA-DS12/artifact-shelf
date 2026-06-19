@@ -27,6 +27,10 @@ export async function readArtifactContent(id: string): Promise<string> {
   return invoke<string>("read_artifact_content", { id });
 }
 
+export async function searchInContents(query: string): Promise<string[]> {
+  return invoke<string[]>("search_in_contents", { query });
+}
+
 export async function updateArtifact(
   id: string,
   update: ArtifactUpdate,
