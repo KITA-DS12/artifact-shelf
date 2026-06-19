@@ -216,11 +216,42 @@ fn check_missing_artifacts(app: tauri::AppHandle) -> Result<Vec<String>, String>
     Ok(files::missing_artifact_ids(&library))
 }
 
+/// 「ライブラリから削除」のセマンティクス: 物理削除ではなくゴミ箱に移動する。
+/// 完全削除は `purge_artifacts` で行う。
 #[tauri::command]
 fn delete_artifacts(app: tauri::AppHandle, ids: Vec<String>) -> Result<usize, String> {
     let lib_path = library_path(&app)?;
     let mut library = store::load_library(&lib_path).map_err(|e| e.to_string())?;
-    let removed = delete::remove_artifacts(&mut library, &ids);
+    let now = Utc::now().to_rfc3339();
+    let moved = delete::trash_artifacts(&mut library, &ids, &now);
+    store::save_library(&lib_path, &library).map_err(|e| e.to_string())?;
+    Ok(moved)
+}
+
+#[tauri::command]
+fn restore_artifacts(app: tauri::AppHandle, ids: Vec<String>) -> Result<usize, String> {
+    let lib_path = library_path(&app)?;
+    let mut library = store::load_library(&lib_path).map_err(|e| e.to_string())?;
+    let restored = delete::restore_artifacts(&mut library, &ids);
+    store::save_library(&lib_path, &library).map_err(|e| e.to_string())?;
+    Ok(restored)
+}
+
+#[tauri::command]
+fn purge_artifacts(app: tauri::AppHandle, ids: Vec<String>) -> Result<usize, String> {
+    let lib_path = library_path(&app)?;
+    let mut library = store::load_library(&lib_path).map_err(|e| e.to_string())?;
+    let removed = delete::purge_artifacts(&mut library, &ids);
+    store::save_library(&lib_path, &library).map_err(|e| e.to_string())?;
+    Ok(removed)
+}
+
+#[tauri::command]
+fn empty_trash(app: tauri::AppHandle) -> Result<usize, String> {
+    let lib_path = library_path(&app)?;
+    let mut library = store::load_library(&lib_path).map_err(|e| e.to_string())?;
+    let ids = delete::trashed_ids(&library);
+    let removed = delete::purge_artifacts(&mut library, &ids);
     store::save_library(&lib_path, &library).map_err(|e| e.to_string())?;
     Ok(removed)
 }
@@ -362,6 +393,9 @@ pub fn run() {
             import_artifacts,
             update_artifact,
             delete_artifacts,
+            restore_artifacts,
+            purge_artifacts,
+            empty_trash,
             search_in_contents,
             read_artifact_content,
             open_in_finder,

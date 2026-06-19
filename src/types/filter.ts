@@ -15,6 +15,9 @@ export type SortKey =
  */
 export type ReadState = "all" | "unread" | "read";
 
+/** "active" は通常表示、"trash" はゴミ箱表示 */
+export type LibraryView = "active" | "trash";
+
 export interface LibraryFilter {
   search: string;
   tags: string[];
@@ -29,6 +32,8 @@ export interface LibraryFilter {
   directory: string | null;
   /** 検索クエリを本文（Markdown/HTML ファイル中身）にも適用 */
   searchInContent: boolean;
+  /** 通常表示 / ゴミ箱表示 の切替 */
+  view: LibraryView;
 }
 
 export const DEFAULT_FILTER: LibraryFilter = {
@@ -41,6 +46,7 @@ export const DEFAULT_FILTER: LibraryFilter = {
   capturedTo: null,
   directory: null,
   searchInContent: false,
+  view: "active",
 };
 
 export const SORT_LABELS: Record<SortKey, string> = {

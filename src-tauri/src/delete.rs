@@ -2,14 +2,51 @@ use std::collections::HashSet;
 
 use crate::store::Library;
 
-/// `ids` に含まれる Artifact をライブラリから取り除く。
-/// 実ファイル (source_path) には一切触らない。
-/// 戻り値は実際に削除されたエントリ数。
-pub fn remove_artifacts(library: &mut Library, ids: &[String]) -> usize {
+/// `ids` の Artifact をゴミ箱に移動する（deleted_at を now_iso でセット）。
+/// 実体ファイルは触らない。戻り値は新たにゴミ箱に入ったエントリ数（既に入っていたものは含まない）。
+pub fn trash_artifacts(library: &mut Library, ids: &[String], now_iso: &str) -> usize {
+    let id_set: HashSet<&str> = ids.iter().map(String::as_str).collect();
+    let mut moved = 0;
+    for a in &mut library.artifacts {
+        if id_set.contains(a.id.as_str()) && a.deleted_at.is_none() {
+            a.deleted_at = Some(now_iso.to_string());
+            moved += 1;
+        }
+    }
+    moved
+}
+
+/// `ids` の Artifact をゴミ箱から戻す（deleted_at を None に）。
+/// 戻り値は実際に復元された数。
+pub fn restore_artifacts(library: &mut Library, ids: &[String]) -> usize {
+    let id_set: HashSet<&str> = ids.iter().map(String::as_str).collect();
+    let mut restored = 0;
+    for a in &mut library.artifacts {
+        if id_set.contains(a.id.as_str()) && a.deleted_at.is_some() {
+            a.deleted_at = None;
+            restored += 1;
+        }
+    }
+    restored
+}
+
+/// `ids` の Artifact を library から完全に取り除く（fs::remove_file は呼ばない）。
+/// 戻り値は実際に消されたエントリ数。
+pub fn purge_artifacts(library: &mut Library, ids: &[String]) -> usize {
     let id_set: HashSet<&str> = ids.iter().map(String::as_str).collect();
     let before = library.artifacts.len();
     library.artifacts.retain(|a| !id_set.contains(a.id.as_str()));
     before - library.artifacts.len()
+}
+
+/// ゴミ箱に入っている全 Artifact の id を返す。
+pub fn trashed_ids(library: &Library) -> Vec<String> {
+    library
+        .artifacts
+        .iter()
+        .filter(|a| a.deleted_at.is_some())
+        .map(|a| a.id.clone())
+        .collect()
 }
 
 #[cfg(test)]
@@ -29,6 +66,7 @@ mod tests {
             imported_at: "2026-06-18T00:00:00Z".into(),
             updated_at: "2026-06-18T00:00:00Z".into(),
             opened_at: None,
+            deleted_at: None,
             is_read: false,
             is_favorite: false,
             source: Source::Unknown,
@@ -44,49 +82,70 @@ mod tests {
     }
 
     #[test]
-    fn single_id_is_removed() {
+    fn trash_sets_deleted_at_for_target_ids() {
         let mut lib = lib_with(&["a", "b", "c"]);
-        let removed = remove_artifacts(&mut lib, &["b".into()]);
+        let moved = trash_artifacts(&mut lib, &["b".into()], "2026-06-19T00:00:00Z");
+        assert_eq!(moved, 1);
+        assert!(lib.artifacts[0].deleted_at.is_none());
+        assert_eq!(
+            lib.artifacts[1].deleted_at.as_deref(),
+            Some("2026-06-19T00:00:00Z")
+        );
+        assert!(lib.artifacts[2].deleted_at.is_none());
+        // library 上から消えていない（trash 状態で残る）
+        assert_eq!(lib.artifacts.len(), 3);
+    }
+
+    #[test]
+    fn trash_is_idempotent_for_already_trashed() {
+        let mut lib = lib_with(&["a"]);
+        trash_artifacts(&mut lib, &["a".into()], "T1");
+        let moved = trash_artifacts(&mut lib, &["a".into()], "T2");
+        // 既に trash なので新たに移動した数は 0、時刻は T1 のまま維持
+        assert_eq!(moved, 0);
+        assert_eq!(lib.artifacts[0].deleted_at.as_deref(), Some("T1"));
+    }
+
+    #[test]
+    fn restore_clears_deleted_at() {
+        let mut lib = lib_with(&["a", "b"]);
+        trash_artifacts(&mut lib, &["a".into(), "b".into()], "T1");
+        let restored = restore_artifacts(&mut lib, &["a".into()]);
+        assert_eq!(restored, 1);
+        assert!(lib.artifacts[0].deleted_at.is_none());
+        assert!(lib.artifacts[1].deleted_at.is_some());
+    }
+
+    #[test]
+    fn restore_noop_for_non_trashed() {
+        let mut lib = lib_with(&["a"]);
+        let restored = restore_artifacts(&mut lib, &["a".into()]);
+        assert_eq!(restored, 0);
+    }
+
+    #[test]
+    fn purge_removes_from_library() {
+        let mut lib = lib_with(&["a", "b", "c"]);
+        trash_artifacts(&mut lib, &["b".into()], "T1");
+        let removed = purge_artifacts(&mut lib, &["b".into()]);
         assert_eq!(removed, 1);
         let remaining: Vec<&str> = lib.artifacts.iter().map(|a| a.id.as_str()).collect();
         assert_eq!(remaining, vec!["a", "c"]);
     }
 
     #[test]
-    fn multiple_ids_are_removed_in_one_call() {
-        let mut lib = lib_with(&["a", "b", "c", "d"]);
-        let removed = remove_artifacts(&mut lib, &["a".into(), "c".into()]);
-        assert_eq!(removed, 2);
-        let remaining: Vec<&str> = lib.artifacts.iter().map(|a| a.id.as_str()).collect();
-        assert_eq!(remaining, vec!["b", "d"]);
-    }
-
-    #[test]
-    fn missing_ids_are_silently_ignored() {
+    fn purge_does_not_require_trash_state() {
+        // active のものも purge できる（呼び出し側の責任で trash 経由を強制する）
         let mut lib = lib_with(&["a", "b"]);
-        let removed = remove_artifacts(&mut lib, &["x".into(), "a".into()]);
+        let removed = purge_artifacts(&mut lib, &["a".into()]);
         assert_eq!(removed, 1);
-        let remaining: Vec<&str> = lib.artifacts.iter().map(|a| a.id.as_str()).collect();
-        assert_eq!(remaining, vec!["b"]);
     }
 
     #[test]
-    fn empty_id_list_is_noop() {
-        let mut lib = lib_with(&["a"]);
-        let removed = remove_artifacts(&mut lib, &[]);
-        assert_eq!(removed, 0);
-        assert_eq!(lib.artifacts.len(), 1);
-    }
-
-    #[test]
-    fn source_paths_are_left_untouched_in_state() {
-        // pure 関数なので fs を触らないことは型で担保される。
-        // ここでは保存パスが Library 上にも残らない（=エントリごと消える）ことを確認するだけ。
-        let mut lib = lib_with(&["a"]);
-        let before_path = lib.artifacts[0].source_path.clone();
-        remove_artifacts(&mut lib, &["a".into()]);
-        assert!(lib.artifacts.is_empty());
-        // before_path は呼び出し側で参照可能（ファイル自体は外部に存在し続ける）
-        assert!(before_path.ends_with("a.md"));
+    fn trashed_ids_lists_only_deleted() {
+        let mut lib = lib_with(&["a", "b", "c"]);
+        trash_artifacts(&mut lib, &["a".into(), "c".into()], "T1");
+        let ids = trashed_ids(&lib);
+        assert_eq!(ids, vec!["a".to_string(), "c".to_string()]);
     }
 }

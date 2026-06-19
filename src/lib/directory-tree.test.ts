@@ -14,6 +14,7 @@ function art(sourcePath: string): Artifact {
     importedAt: "2026-06-18T00:00:00Z",
     updatedAt: "2026-06-18T00:00:00Z",
     openedAt: null,
+    deletedAt: null,
     isRead: false,
     isFavorite: false,
     source: "Unknown",

@@ -41,6 +41,7 @@ pub fn build_artifact(path: &Path) -> Result<Artifact, String> {
         imported_at: now_iso.clone(),
         updated_at: now_iso,
         opened_at: None,
+        deleted_at: None,
         is_read: false,
         is_favorite: false,
         source: Source::Unknown,

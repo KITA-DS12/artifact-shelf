@@ -25,7 +25,12 @@ type Props = {
   missing?: boolean;
   onBack: () => void;
   onUpdated?: (updated: Artifact) => void;
+  /** 通常 view 時: ゴミ箱に移動するアクション */
   onDelete?: () => void;
+  /** ゴミ箱 view 時: 復元アクション */
+  onRestore?: () => void;
+  /** ゴミ箱 view 時: 完全削除アクション */
+  onPurge?: () => void;
   /** 直前の Artifact id（フィルタ + ソート適用済み順序）。先頭なら null */
   prevId?: string | null;
   /** 次の Artifact id。末尾なら null */
@@ -45,6 +50,8 @@ export function ArtifactDetail({
   onBack,
   onUpdated,
   onDelete,
+  onRestore,
+  onPurge,
   prevId,
   nextId,
   onNavigate,
@@ -304,7 +311,21 @@ export function ArtifactDetail({
               className="btn-danger-outline"
               onClick={onDelete}
             >
-              ライブラリから削除
+              ゴミ箱に移動
+            </button>
+          )}
+          {onRestore && (
+            <button type="button" onClick={onRestore}>
+              復元
+            </button>
+          )}
+          {onPurge && (
+            <button
+              type="button"
+              className="btn-danger-outline"
+              onClick={onPurge}
+            >
+              完全に削除
             </button>
           )}
         </div>

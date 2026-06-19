@@ -9,7 +9,10 @@ import {
   checkMissingArtifacts,
   deleteArtifacts,
   emptyLibrary,
+  emptyTrash,
   loadLibrary,
+  purgeArtifacts,
+  restoreArtifacts,
   searchInContents,
 } from "./lib/library";
 import { applyFilter, collectAllTags } from "./lib/filter";
@@ -20,9 +23,15 @@ import type { Artifact, Library } from "./types/artifact";
 import {
   DEFAULT_FILTER,
   type LibraryFilter,
+  type LibraryView,
   type SortKey,
 } from "./types/filter";
 import "./App.css";
+
+type PendingAction =
+  | { type: "trash"; ids: string[] }
+  | { type: "purge"; ids: string[] }
+  | { type: "empty-trash" };
 
 function App() {
   const [library, setLibrary] = useState<Library>(emptyLibrary);
@@ -35,10 +44,9 @@ function App() {
   );
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [deleteTargets, setDeleteTargets] = useState<string[] | null>(null);
+  const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [focusedIndex, setFocusedIndex] = useState(0);
-  // 本文全文検索の結果。null は「適用中ではない」を意味する
   const [contentMatched, setContentMatched] = useState<Set<string> | null>(
     null,
   );
@@ -67,9 +75,19 @@ function App() {
     () => void reload(),
   );
 
-  const availableTags = useMemo(
-    () => collectAllTags(library.artifacts),
+  // active / trash の件数とリスト
+  const activeArtifacts = useMemo(
+    () => library.artifacts.filter((a) => a.deletedAt === null),
     [library.artifacts],
+  );
+  const trashedArtifacts = useMemo(
+    () => library.artifacts.filter((a) => a.deletedAt !== null),
+    [library.artifacts],
+  );
+
+  const availableTags = useMemo(
+    () => collectAllTags(activeArtifacts),
+    [activeArtifacts],
   );
 
   // 本文検索 (Rust で grep)。debounce 300ms。
@@ -91,13 +109,18 @@ function App() {
     return sortArtifacts(base, sortKey);
   }, [library.artifacts, filter, sortKey, contentMatched]);
 
-  // filtered の長さが縮んだら focused を clamp
   useEffect(() => {
     setFocusedIndex((i) => {
       if (filtered.length === 0) return 0;
       return Math.min(i, filtered.length - 1);
     });
   }, [filtered.length]);
+
+  // view 切替 / フィルタ変更で選択モードを解除
+  useEffect(() => {
+    setSelectMode(false);
+    setSelectedIds(new Set());
+  }, [filter.view]);
 
   const focusedArtifact = filtered[focusedIndex] ?? null;
 
@@ -155,27 +178,79 @@ function App() {
     setSelectedIds(new Set());
   }
 
-  async function confirmDelete() {
-    if (!deleteTargets) return;
+  function changeView(view: LibraryView) {
+    setFilter({ ...filter, view });
+    setSelectedId(null);
+  }
+
+  // 復元は確認なし
+  async function handleRestore(ids: string[]) {
     try {
-      await deleteArtifacts(deleteTargets);
-      setDeleteTargets(null);
+      await restoreArtifacts(ids);
       exitSelectMode();
-      if (selectedId && deleteTargets.includes(selectedId)) {
-        setSelectedId(null);
-      }
+      if (selectedId && ids.includes(selectedId)) setSelectedId(null);
       await reload();
     } catch (err) {
       setError(String(err));
-      setDeleteTargets(null);
     }
   }
 
-  const deleteCount = deleteTargets?.length ?? 0;
-  const deleteMessage =
-    deleteCount > 1
-      ? `${deleteCount} 件の Artifact をライブラリから削除します。元のファイル自体は削除されません。`
-      : `この Artifact をライブラリから削除します。元のファイル自体は削除されません。`;
+  async function confirmAction() {
+    if (!pendingAction) return;
+    try {
+      if (pendingAction.type === "trash") {
+        await deleteArtifacts(pendingAction.ids);
+        if (selectedId && pendingAction.ids.includes(selectedId)) {
+          setSelectedId(null);
+        }
+      } else if (pendingAction.type === "purge") {
+        await purgeArtifacts(pendingAction.ids);
+        if (selectedId && pendingAction.ids.includes(selectedId)) {
+          setSelectedId(null);
+        }
+      } else {
+        await emptyTrash();
+      }
+      setPendingAction(null);
+      exitSelectMode();
+      await reload();
+    } catch (err) {
+      setError(String(err));
+      setPendingAction(null);
+    }
+  }
+
+  const dialog = (() => {
+    if (!pendingAction) return null;
+    if (pendingAction.type === "trash") {
+      const n = pendingAction.ids.length;
+      return {
+        title: "ゴミ箱に移動しますか？",
+        message:
+          n > 1
+            ? `${n} 件の Artifact をゴミ箱に移動します。ゴミ箱からは復元 / 完全削除ができます。元のファイル自体は削除されません。`
+            : `この Artifact をゴミ箱に移動します。ゴミ箱からは復元 / 完全削除ができます。元のファイル自体は削除されません。`,
+        confirmLabel: "ゴミ箱へ",
+      };
+    }
+    if (pendingAction.type === "purge") {
+      const n = pendingAction.ids.length;
+      return {
+        title: "完全に削除しますか？",
+        message:
+          n > 1
+            ? `${n} 件の Artifact を完全に削除します。元に戻せません（元のファイル自体は残ります）。`
+            : `この Artifact を完全に削除します。元に戻せません（元のファイル自体は残ります）。`,
+        confirmLabel: "完全に削除",
+      };
+    }
+    // empty-trash
+    return {
+      title: "ゴミ箱を空にしますか？",
+      message: `ゴミ箱の中の ${trashedArtifacts.length} 件をすべて完全に削除します。元に戻せません（元のファイル自体は残ります）。`,
+      confirmLabel: "ゴミ箱を空にする",
+    };
+  })();
 
   const overlay = dragHovering ? (
     <div className="drop-overlay" aria-live="polite">
@@ -194,23 +269,41 @@ function App() {
           missing={missingIds.has(selected.id)}
           onBack={() => setSelectedId(null)}
           onUpdated={() => void reload()}
-          onDelete={() => setDeleteTargets([selected.id])}
+          onDelete={
+            selected.deletedAt === null
+              ? () => setPendingAction({ type: "trash", ids: [selected.id] })
+              : undefined
+          }
+          onRestore={
+            selected.deletedAt !== null
+              ? () => void handleRestore([selected.id])
+              : undefined
+          }
+          onPurge={
+            selected.deletedAt !== null
+              ? () => setPendingAction({ type: "purge", ids: [selected.id] })
+              : undefined
+          }
           prevId={prevId}
           nextId={nextId}
           onNavigate={(id) => setSelectedId(id)}
         />
-        <ConfirmDialog
-          open={deleteTargets !== null}
-          title="ライブラリから削除しますか？"
-          message={deleteMessage}
-          confirmLabel="削除する"
-          destructive
-          onConfirm={() => void confirmDelete()}
-          onCancel={() => setDeleteTargets(null)}
-        />
+        {dialog && (
+          <ConfirmDialog
+            open
+            title={dialog.title}
+            message={dialog.message}
+            confirmLabel={dialog.confirmLabel}
+            destructive
+            onConfirm={() => void confirmAction()}
+            onCancel={() => setPendingAction(null)}
+          />
+        )}
       </main>
     );
   }
+
+  const isTrashView = filter.view === "trash";
 
   return (
     <main className="container app-shell">
@@ -230,7 +323,7 @@ function App() {
           ライブラリの読み込みに失敗しました: {error}
         </div>
       )}
-      {missingIds.size > 0 && (
+      {missingIds.size > 0 && !isTrashView && (
         <div className="warning-banner" role="alert">
           元ファイルが見つからない Artifact が {missingIds.size} 件あります。
         </div>
@@ -252,29 +345,78 @@ function App() {
             {sidebarOpen ? "◂" : "▸"}
           </button>
           {sidebarOpen && (
-            <DirectoryTree
-              artifacts={library.artifacts}
-              selected={filter.directory}
-              onSelect={(directory) => setFilter({ ...filter, directory })}
-            />
+            <>
+              <nav className="view-switch" aria-label="ビュー切替">
+                <button
+                  type="button"
+                  className={`view-link${filter.view === "active" ? " is-current" : ""}`}
+                  onClick={() => changeView("active")}
+                >
+                  <span>ライブラリ</span>
+                  <span className="view-count">{activeArtifacts.length}</span>
+                </button>
+                <button
+                  type="button"
+                  className={`view-link${filter.view === "trash" ? " is-current" : ""}`}
+                  onClick={() => changeView("trash")}
+                >
+                  <span>ゴミ箱</span>
+                  <span className="view-count">{trashedArtifacts.length}</span>
+                </button>
+              </nav>
+              {!isTrashView && (
+                <DirectoryTree
+                  artifacts={activeArtifacts}
+                  selected={filter.directory}
+                  onSelect={(directory) => setFilter({ ...filter, directory })}
+                />
+              )}
+            </>
           )}
         </aside>
         <div className="app-content">
+          {isTrashView && trashedArtifacts.length > 0 && (
+            <div className="trash-bar">
+              <span className="muted">
+                ゴミ箱 — {trashedArtifacts.length} 件
+              </span>
+              <button
+                type="button"
+                className="btn btn-danger-outline"
+                onClick={() => setPendingAction({ type: "empty-trash" })}
+              >
+                ゴミ箱を空にする
+              </button>
+            </div>
+          )}
           <LibraryToolbar
             filter={filter}
             onFilterChange={setFilter}
             sortKey={sortKey}
             onSortChange={setSortKey}
             availableTags={availableTags}
-            totalCount={library.artifacts.length}
+            totalCount={
+              isTrashView ? trashedArtifacts.length : activeArtifacts.length
+            }
             matchedCount={filtered.length}
             selectMode={selectMode}
             selectedCount={selectedIds.size}
             onEnterSelectMode={() => setSelectMode(true)}
             onExitSelectMode={exitSelectMode}
-            onRequestDelete={() => setDeleteTargets([...selectedIds])}
+            onRequestDelete={() =>
+              setPendingAction({
+                type: isTrashView ? "purge" : "trash",
+                ids: [...selectedIds],
+              })
+            }
+            onRequestRestore={
+              isTrashView
+                ? () => void handleRestore([...selectedIds])
+                : undefined
+            }
+            isTrashView={isTrashView}
           />
-          {filter.directory && (
+          {filter.directory && !isTrashView && (
             <div className="active-dir-chip">
               <span className="muted">ディレクトリ:</span>{" "}
               <span className="active-dir-path" title={filter.directory}>
@@ -300,15 +442,17 @@ function App() {
           />
         </div>
       </div>
-      <ConfirmDialog
-        open={deleteTargets !== null}
-        title="ライブラリから削除しますか？"
-        message={deleteMessage}
-        confirmLabel="削除する"
-        destructive
-        onConfirm={() => void confirmDelete()}
-        onCancel={() => setDeleteTargets(null)}
-      />
+      {dialog && (
+        <ConfirmDialog
+          open
+          title={dialog.title}
+          message={dialog.message}
+          confirmLabel={dialog.confirmLabel}
+          destructive
+          onConfirm={() => void confirmAction()}
+          onCancel={() => setPendingAction(null)}
+        />
+      )}
     </main>
   );
 }

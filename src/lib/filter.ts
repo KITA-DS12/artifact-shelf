@@ -31,6 +31,9 @@ export function applyFilter(
   const q = filter.search.trim().toLowerCase();
   const cm = contentMatched ?? undefined;
   return artifacts.filter((a) => {
+    // view 切替: active は deletedAt === null のみ、trash は deletedAt !== null のみ
+    if (filter.view === "active" && a.deletedAt !== null) return false;
+    if (filter.view === "trash" && a.deletedAt === null) return false;
     if (q && !matchesSearch(a, q, cm)) return false;
     if (
       filter.tags.length > 0 &&
