@@ -8,6 +8,8 @@ type Props = {
   selectMode?: boolean;
   selectedIds?: ReadonlySet<string>;
   onToggleSelect?: (artifact: Artifact) => void;
+  /** キーボードナビゲーションのフォーカス対象 id */
+  focusedId?: string | null;
 };
 
 export function ArtifactList({
@@ -17,6 +19,7 @@ export function ArtifactList({
   selectMode,
   selectedIds,
   onToggleSelect,
+  focusedId,
 }: Props) {
   if (artifacts.length === 0) {
     return (
@@ -38,6 +41,7 @@ export function ArtifactList({
           missing={missingIds?.has(a.id)}
           selectMode={selectMode}
           selected={selectedIds?.has(a.id)}
+          focused={focusedId === a.id}
           onClick={onSelect}
           onToggleSelect={onToggleSelect}
         />
