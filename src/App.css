@@ -116,6 +116,62 @@ a:hover {
   padding-right: 12px;
 }
 
+/* view 切替（ライブラリ / ゴミ箱） */
+.view-switch {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 14px;
+}
+
+.view-link {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.view-link:hover {
+  background-color: var(--bg-deep);
+}
+
+.view-link.is-current {
+  background-color: var(--indigo-soft);
+  color: var(--indigo);
+  font-weight: 600;
+}
+
+.view-count {
+  font-size: 11px;
+  color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.view-link.is-current .view-count {
+  color: var(--indigo);
+}
+
+.trash-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background-color: var(--bg-sub);
+  font-size: 13px;
+}
+
 .sidebar-collapsed .app-sidebar {
   padding-right: 0;
 }

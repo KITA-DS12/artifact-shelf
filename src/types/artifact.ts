@@ -22,6 +22,11 @@ export interface Artifact {
    * 一度も開いていなければ null。
    */
   openedAt: string | null;
+  /**
+   * ゴミ箱に入れた時刻。null なら通常表示、ISO 文字列なら trash 状態。
+   * 完全削除のときは library から物理的に消える。
+   */
+  deletedAt: string | null;
   isRead: boolean;
   isFavorite: boolean;
   source: Source;

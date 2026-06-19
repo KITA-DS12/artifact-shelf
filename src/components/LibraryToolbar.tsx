@@ -19,6 +19,8 @@ type Props = {
   onEnterSelectMode?: () => void;
   onExitSelectMode?: () => void;
   onRequestDelete?: () => void;
+  onRequestRestore?: () => void;
+  isTrashView?: boolean;
 };
 
 const FILE_TYPES: FileType[] = ["markdown", "html"];
@@ -45,6 +47,8 @@ export function LibraryToolbar({
   onEnterSelectMode,
   onExitSelectMode,
   onRequestDelete,
+  onRequestRestore,
+  isTrashView = false,
 }: Props) {
   const [expanded, setExpanded] = useState(false);
 
@@ -61,19 +65,36 @@ export function LibraryToolbar({
           <span className="select-summary">
             {selectedCount} 件を選択中
           </span>
-          <button
-            type="button"
-            className="btn btn-danger"
-            disabled={selectedCount === 0}
-            onClick={onRequestDelete}
-          >
-            削除
-          </button>
-          <button
-            type="button"
-            className="btn"
-            onClick={onExitSelectMode}
-          >
+          {isTrashView ? (
+            <>
+              <button
+                type="button"
+                className="btn"
+                disabled={selectedCount === 0}
+                onClick={onRequestRestore}
+              >
+                復元
+              </button>
+              <button
+                type="button"
+                className="btn btn-danger"
+                disabled={selectedCount === 0}
+                onClick={onRequestDelete}
+              >
+                完全に削除
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              className="btn btn-danger"
+              disabled={selectedCount === 0}
+              onClick={onRequestDelete}
+            >
+              ゴミ箱へ
+            </button>
+          )}
+          <button type="button" className="btn" onClick={onExitSelectMode}>
             キャンセル
           </button>
         </div>

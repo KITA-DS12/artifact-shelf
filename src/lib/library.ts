@@ -38,8 +38,24 @@ export async function updateArtifact(
   return invoke<Artifact>("update_artifact", { id, update });
 }
 
+/** 選択した Artifact をゴミ箱に移動する（deletedAt をセット） */
 export async function deleteArtifacts(ids: string[]): Promise<number> {
   return invoke<number>("delete_artifacts", { ids });
+}
+
+/** ゴミ箱から戻す */
+export async function restoreArtifacts(ids: string[]): Promise<number> {
+  return invoke<number>("restore_artifacts", { ids });
+}
+
+/** library.json から完全に削除する（元ファイルは触らない） */
+export async function purgeArtifacts(ids: string[]): Promise<number> {
+  return invoke<number>("purge_artifacts", { ids });
+}
+
+/** ゴミ箱を空にする */
+export async function emptyTrash(): Promise<number> {
+  return invoke<number>("empty_trash");
 }
 
 export async function openInFinder(path: string): Promise<void> {

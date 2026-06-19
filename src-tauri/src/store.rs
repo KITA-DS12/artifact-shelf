@@ -44,6 +44,10 @@ pub struct Artifact {
     /// 一度も開いていない場合は None。
     #[serde(default)]
     pub opened_at: Option<String>,
+    /// ゴミ箱に入れた時刻。None なら通常表示、Some(時刻) なら trash 状態。
+    /// 完全削除のときは Library.artifacts から物理的に消す。
+    #[serde(default)]
+    pub deleted_at: Option<String>,
     pub is_read: bool,
     pub is_favorite: bool,
     pub source: Source,
@@ -202,6 +206,7 @@ mod tests {
             imported_at: "2026-06-18T10:00:00+09:00".into(),
             updated_at: "2026-06-18T10:00:00+09:00".into(),
             opened_at: None,
+            deleted_at: None,
             is_read: false,
             is_favorite: false,
             source: Source::Claude,
