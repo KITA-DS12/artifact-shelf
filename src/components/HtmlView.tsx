@@ -15,6 +15,10 @@ type Props = {
 export type HtmlViewHandle = {
   /** iframe 内ページ内検索の query を設定。空文字でクリア */
   setFindQuery: (query: string) => void;
+  /** 次のマッチへ */
+  findNext: () => void;
+  /** 前のマッチへ */
+  findPrev: () => void;
 };
 
 // srcDoc 末尾に差し込む補助スクリプト。
@@ -145,19 +149,74 @@ const INJECT_SCRIPT = `
       try {
         var style = document.createElement('style');
         style.textContent =
-          '::highlight(yomikura-find){background-color:#fff39a;color:inherit;}';
+          '::highlight(yomikura-find){background-color:#fff39a;color:inherit;}' +
+          '::highlight(yomikura-find-current){background-color:#ffb84a;color:inherit;}';
         document.head.appendChild(style);
       } catch (_) {}
     }
 
+    // iframe 内の find 状態（matches 配列と current index）を保持
+    window.__yomikuraFind = { matches: [], currentIndex: 0 };
+
+    function clearFindHighlights() {
+      var hi = window.CSS && window.CSS.highlights;
+      if (!hi) return;
+      try { hi.delete('yomikura-find'); } catch (_) {}
+      try { hi.delete('yomikura-find-current'); } catch (_) {}
+    }
+
+    function applyFindHighlights(matches, currentIndex) {
+      var hi = window.CSS && window.CSS.highlights;
+      if (!hi || !window.Highlight) return;
+      clearFindHighlights();
+      if (matches.length === 0) return;
+      try {
+        var hlAll = new window.Highlight();
+        matches.forEach(function (r) { hlAll.add(r); });
+        hi.set('yomikura-find', hlAll);
+        var current = matches[currentIndex] || matches[0];
+        var hlCurrent = new window.Highlight();
+        hlCurrent.add(current);
+        hi.set('yomikura-find-current', hlCurrent);
+      } catch (_) {}
+    }
+
+    function scrollToCurrentMatch() {
+      var state = window.__yomikuraFind;
+      if (!state || state.matches.length === 0) return;
+      var r = state.matches[state.currentIndex];
+      if (!r) return;
+      try {
+        var rect = r.getBoundingClientRect();
+        parent.postMessage({
+          type: 'YOMIKURA_SCROLL_TO',
+          topInFrame: rect.top + (window.scrollY || 0),
+        }, '*');
+      } catch (_) {}
+    }
+
+    function reportResult() {
+      var state = window.__yomikuraFind;
+      parent.postMessage({
+        type: 'YOMIKURA_FIND_RESULT',
+        count: state.matches.length,
+        currentIndex: state.currentIndex,
+      }, '*');
+    }
+
     function performFind(query) {
       try {
-        var hi = window.CSS && window.CSS.highlights;
-        if (!hi) return 0;
-        try { hi.delete('yomikura-find'); } catch (_) {}
-        if (!query) return 0;
+        clearFindHighlights();
+        window.__yomikuraFind = { matches: [], currentIndex: 0 };
+        if (!query) {
+          reportResult();
+          return 0;
+        }
         var root = document.body;
-        if (!root) return 0;
+        if (!root) {
+          reportResult();
+          return 0;
+        }
         var matches = [];
         var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
         var q = query.toLowerCase();
@@ -177,27 +236,30 @@ const INJECT_SCRIPT = `
             idx = found + query.length;
           }
         }
-        if (matches.length > 0 && window.Highlight) {
-          try {
-            var hl = new window.Highlight();
-            matches.forEach(function (r) { hl.add(r); });
-            hi.set('yomikura-find', hl);
-            // 最初の match までスクロール
-            var firstRect = matches[0].getBoundingClientRect();
-            parent.postMessage({
-              type: 'YOMIKURA_SCROLL_TO',
-              topInFrame: firstRect.top + (window.scrollY || 0),
-            }, '*');
-          } catch (_) {}
+        window.__yomikuraFind = { matches: matches, currentIndex: 0 };
+        applyFindHighlights(matches, 0);
+        if (matches.length > 0) {
+          scrollToCurrentMatch();
         }
-        parent.postMessage({
-          type: 'YOMIKURA_FIND_RESULT',
-          count: matches.length,
-        }, '*');
+        reportResult();
         return matches.length;
       } catch (e) {
         return 0;
       }
+    }
+
+    function navigateFind(direction) {
+      var state = window.__yomikuraFind;
+      if (!state || state.matches.length === 0) return;
+      if (direction === 'next') {
+        state.currentIndex = (state.currentIndex + 1) % state.matches.length;
+      } else {
+        state.currentIndex =
+          (state.currentIndex - 1 + state.matches.length) % state.matches.length;
+      }
+      applyFindHighlights(state.matches, state.currentIndex);
+      scrollToCurrentMatch();
+      reportResult();
     }
 
     function setup() {
@@ -216,6 +278,8 @@ const INJECT_SCRIPT = `
         if (!e.data || typeof e.data !== 'object') return;
         if (e.data.type === 'YOMIKURA_FIND') {
           performFind(e.data.query || '');
+        } else if (e.data.type === 'YOMIKURA_FIND_NAV') {
+          navigateFind(e.data.direction || 'next');
         }
       });
     }
@@ -254,8 +318,22 @@ export const HtmlView = forwardRef<HtmlViewHandle, Props>(function HtmlView(
     ref,
     () => ({
       setFindQuery: (query: string) => {
-        const w = iframeRef.current?.contentWindow;
-        w?.postMessage({ type: "YOMIKURA_FIND", query }, "*");
+        iframeRef.current?.contentWindow?.postMessage(
+          { type: "YOMIKURA_FIND", query },
+          "*",
+        );
+      },
+      findNext: () => {
+        iframeRef.current?.contentWindow?.postMessage(
+          { type: "YOMIKURA_FIND_NAV", direction: "next" },
+          "*",
+        );
+      },
+      findPrev: () => {
+        iframeRef.current?.contentWindow?.postMessage(
+          { type: "YOMIKURA_FIND_NAV", direction: "prev" },
+          "*",
+        );
       },
     }),
     [],
