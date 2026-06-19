@@ -16,6 +16,28 @@ fn library_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     Ok(dir.join("library.json"))
 }
 
+/// `path` の library.json を load → クロージャ → save の 1 セットで処理する。
+/// クロージャが Err を返した場合は save しない（部分更新を残さないため）。
+fn with_library_mut_at<T, F>(path: &Path, f: F) -> Result<T, String>
+where
+    F: FnOnce(&mut store::Library) -> Result<T, String>,
+{
+    let mut library = store::load_library(path).map_err(|e| e.to_string())?;
+    let result = f(&mut library)?;
+    store::save_library(path, &library).map_err(|e| e.to_string())?;
+    Ok(result)
+}
+
+/// Tauri command 用の薄いラッパ。`AppHandle` から library.json のパスを解決して
+/// [`with_library_mut_at`] に委譲する。
+fn with_library_mut<T, F>(app: &tauri::AppHandle, f: F) -> Result<T, String>
+where
+    F: FnOnce(&mut store::Library) -> Result<T, String>,
+{
+    let path = library_path(app)?;
+    with_library_mut_at(&path, f)
+}
+
 /// 旧 bundle identifier (com.kita.artifact-shelf) で書かれていた library.json を
 /// 新 identifier 配下にコピーする。旧側は触らない（取り消し可能なように）。
 ///
@@ -73,11 +95,7 @@ fn import_artifacts(
     app: tauri::AppHandle,
     paths: Vec<PathBuf>,
 ) -> Result<import::ImportResult, String> {
-    let lib_path = library_path(&app)?;
-    let mut library = store::load_library(&lib_path).map_err(|e| e.to_string())?;
-    let result = import::import_paths(&mut library, &paths);
-    store::save_library(&lib_path, &library).map_err(|e| e.to_string())?;
-    Ok(result)
+    with_library_mut(&app, |lib| Ok(import::import_paths(lib, &paths)))
 }
 
 #[tauri::command]
@@ -86,12 +104,8 @@ fn update_artifact(
     id: String,
     update: edit::ArtifactUpdate,
 ) -> Result<store::Artifact, String> {
-    let lib_path = library_path(&app)?;
-    let mut library = store::load_library(&lib_path).map_err(|e| e.to_string())?;
     let now = Utc::now().to_rfc3339();
-    let updated = edit::apply_update(&mut library, &id, &update, &now)?;
-    store::save_library(&lib_path, &library).map_err(|e| e.to_string())?;
-    Ok(updated)
+    with_library_mut(&app, |lib| edit::apply_update(lib, &id, &update, &now))
 }
 
 #[tauri::command]
@@ -220,40 +234,26 @@ fn check_missing_artifacts(app: tauri::AppHandle) -> Result<Vec<String>, String>
 /// 完全削除は `purge_artifacts` で行う。
 #[tauri::command]
 fn delete_artifacts(app: tauri::AppHandle, ids: Vec<String>) -> Result<usize, String> {
-    let lib_path = library_path(&app)?;
-    let mut library = store::load_library(&lib_path).map_err(|e| e.to_string())?;
     let now = Utc::now().to_rfc3339();
-    let moved = delete::trash_artifacts(&mut library, &ids, &now);
-    store::save_library(&lib_path, &library).map_err(|e| e.to_string())?;
-    Ok(moved)
+    with_library_mut(&app, |lib| Ok(delete::trash_artifacts(lib, &ids, &now)))
 }
 
 #[tauri::command]
 fn restore_artifacts(app: tauri::AppHandle, ids: Vec<String>) -> Result<usize, String> {
-    let lib_path = library_path(&app)?;
-    let mut library = store::load_library(&lib_path).map_err(|e| e.to_string())?;
-    let restored = delete::restore_artifacts(&mut library, &ids);
-    store::save_library(&lib_path, &library).map_err(|e| e.to_string())?;
-    Ok(restored)
+    with_library_mut(&app, |lib| Ok(delete::restore_artifacts(lib, &ids)))
 }
 
 #[tauri::command]
 fn purge_artifacts(app: tauri::AppHandle, ids: Vec<String>) -> Result<usize, String> {
-    let lib_path = library_path(&app)?;
-    let mut library = store::load_library(&lib_path).map_err(|e| e.to_string())?;
-    let removed = delete::purge_artifacts(&mut library, &ids);
-    store::save_library(&lib_path, &library).map_err(|e| e.to_string())?;
-    Ok(removed)
+    with_library_mut(&app, |lib| Ok(delete::purge_artifacts(lib, &ids)))
 }
 
 #[tauri::command]
 fn empty_trash(app: tauri::AppHandle) -> Result<usize, String> {
-    let lib_path = library_path(&app)?;
-    let mut library = store::load_library(&lib_path).map_err(|e| e.to_string())?;
-    let ids = delete::trashed_ids(&library);
-    let removed = delete::purge_artifacts(&mut library, &ids);
-    store::save_library(&lib_path, &library).map_err(|e| e.to_string())?;
-    Ok(removed)
+    with_library_mut(&app, |lib| {
+        let ids = delete::trashed_ids(lib);
+        Ok(delete::purge_artifacts(lib, &ids))
+    })
 }
 
 #[tauri::command]
@@ -262,12 +262,8 @@ fn relink_artifact(
     id: String,
     new_path: String,
 ) -> Result<store::Artifact, String> {
-    let lib_path = library_path(&app)?;
-    let mut library = store::load_library(&lib_path).map_err(|e| e.to_string())?;
     let now = Utc::now().to_rfc3339();
-    let updated = files::relink(&mut library, &id, &new_path, &now)?;
-    store::save_library(&lib_path, &library).map_err(|e| e.to_string())?;
-    Ok(updated)
+    with_library_mut(&app, |lib| files::relink(lib, &id, &new_path, &now))
 }
 
 #[cfg(test)]
@@ -378,6 +374,90 @@ mod open_guard_tests {
         ] {
             assert!(!is_http_url(url), "{url} should be rejected");
         }
+    }
+}
+
+#[cfg(test)]
+mod with_library_mut_tests {
+    use super::*;
+    use std::fs;
+    use tempfile::TempDir;
+
+    fn write_initial(path: &Path) -> String {
+        // 既存 library.json の初期状態を作る。中身はテスト内で比較できればよい。
+        let lib = store::Library::empty();
+        store::save_library(path, &lib).unwrap();
+        fs::read_to_string(path).unwrap()
+    }
+
+    #[test]
+    fn closure_err_does_not_save_library() {
+        // ヘルパが Err を伝播するとき、library.json は変更されないこと。
+        // 「部分更新を残さない」という契約をテストで固定する。
+        let tmp = TempDir::new().unwrap();
+        let path = tmp.path().join("library.json");
+        let before = write_initial(&path);
+
+        let result: Result<(), String> = with_library_mut_at(&path, |lib| {
+            // クロージャ内で変更を加えたあと Err を返す。
+            lib.artifacts.push(store::Artifact {
+                id: "should-not-persist".into(),
+                title: "x".into(),
+                source_path: "/tmp/x.md".into(),
+                file_type: store::FileType::Markdown,
+                tags: vec![],
+                captured_at: "2026-06-19T00:00:00Z".into(),
+                generated_at: None,
+                imported_at: "2026-06-19T00:00:00Z".into(),
+                updated_at: "2026-06-19T00:00:00Z".into(),
+                opened_at: None,
+                deleted_at: None,
+                is_read: false,
+                is_favorite: false,
+                source: store::Source::Unknown,
+                note: String::new(),
+            });
+            Err("domain error".into())
+        });
+
+        assert!(result.is_err());
+        let after = fs::read_to_string(&path).unwrap();
+        assert_eq!(after, before, "クロージャ Err 時には save されない");
+    }
+
+    #[test]
+    fn closure_ok_persists_library_and_returns_value() {
+        // 通常系: クロージャ Ok のときは save され、戻り値も伝播する。
+        let tmp = TempDir::new().unwrap();
+        let path = tmp.path().join("library.json");
+        write_initial(&path);
+
+        let returned: usize = with_library_mut_at(&path, |lib| {
+            lib.artifacts.push(store::Artifact {
+                id: "persisted".into(),
+                title: "y".into(),
+                source_path: "/tmp/y.md".into(),
+                file_type: store::FileType::Markdown,
+                tags: vec![],
+                captured_at: "2026-06-19T00:00:00Z".into(),
+                generated_at: None,
+                imported_at: "2026-06-19T00:00:00Z".into(),
+                updated_at: "2026-06-19T00:00:00Z".into(),
+                opened_at: None,
+                deleted_at: None,
+                is_read: false,
+                is_favorite: false,
+                source: store::Source::Unknown,
+                note: String::new(),
+            });
+            Ok(lib.artifacts.len())
+        })
+        .unwrap();
+
+        assert_eq!(returned, 1);
+        let reloaded = store::load_library(&path).unwrap();
+        assert_eq!(reloaded.artifacts.len(), 1);
+        assert_eq!(reloaded.artifacts[0].id, "persisted");
     }
 }
 
