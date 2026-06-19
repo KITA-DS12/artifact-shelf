@@ -532,6 +532,23 @@ a:hover {
   font-style: italic;
 }
 
+.toolbar-sub {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.search-in-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--fg-sub);
+  cursor: pointer;
+}
+
 .filter-panel {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));

@@ -10,6 +10,7 @@ import {
   deleteArtifacts,
   emptyLibrary,
   loadLibrary,
+  searchInContents,
 } from "./lib/library";
 import { applyFilter, collectAllTags } from "./lib/filter";
 import { sortArtifacts } from "./lib/sort";
@@ -37,6 +38,10 @@ function App() {
   const [deleteTargets, setDeleteTargets] = useState<string[] | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [focusedIndex, setFocusedIndex] = useState(0);
+  // 本文全文検索の結果。null は「適用中ではない」を意味する
+  const [contentMatched, setContentMatched] = useState<Set<string> | null>(
+    null,
+  );
 
   const reload = useCallback(async () => {
     try {
@@ -67,10 +72,28 @@ function App() {
     [library.artifacts],
   );
 
-  const filtered = useMemo(
-    () => sortArtifacts(applyFilter(library.artifacts, filter), sortKey),
-    [library.artifacts, filter, sortKey],
-  );
+  // 本文検索 (Rust で grep)。debounce 300ms。
+  useEffect(() => {
+    if (!filter.searchInContent || filter.search.trim().length === 0) {
+      setContentMatched(null);
+      return;
+    }
+    const handle = window.setTimeout(() => {
+      searchInContents(filter.search.trim())
+        .then((ids) => setContentMatched(new Set(ids)))
+        .catch(() => setContentMatched(new Set()));
+    }, 300);
+    return () => window.clearTimeout(handle);
+  }, [filter.searchInContent, filter.search]);
+
+  const filtered = useMemo(() => {
+    const base = applyFilter(library.artifacts, filter);
+    const narrowed =
+      contentMatched !== null
+        ? base.filter((a) => contentMatched.has(a.id))
+        : base;
+    return sortArtifacts(narrowed, sortKey);
+  }, [library.artifacts, filter, sortKey, contentMatched]);
 
   // filtered の長さが縮んだら focused を clamp
   useEffect(() => {

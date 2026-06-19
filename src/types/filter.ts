@@ -27,6 +27,8 @@ export interface LibraryFilter {
   capturedTo: string | null;
   /** 選択中のディレクトリ（このプレフィックスに収まるものだけ表示） */
   directory: string | null;
+  /** 検索クエリを本文（Markdown/HTML ファイル中身）にも適用 */
+  searchInContent: boolean;
 }
 
 export const DEFAULT_FILTER: LibraryFilter = {
@@ -38,6 +40,7 @@ export const DEFAULT_FILTER: LibraryFilter = {
   capturedFrom: null,
   capturedTo: null,
   directory: null,
+  searchInContent: false,
 };
 
 export const SORT_LABELS: Record<SortKey, string> = {
