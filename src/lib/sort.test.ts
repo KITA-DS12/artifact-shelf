@@ -13,6 +13,7 @@ function make(
     generatedAt: null,
     importedAt: "2026-06-18T00:00:00Z",
     updatedAt: "2026-06-18T00:00:00Z",
+    openedAt: null,
     isRead: false,
     isFavorite: false,
     source: "Unknown",

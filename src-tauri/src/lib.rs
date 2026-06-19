@@ -56,12 +56,24 @@ fn update_artifact(
 #[tauri::command]
 fn read_artifact_content(app: tauri::AppHandle, id: String) -> Result<String, String> {
     let lib_path = library_path(&app)?;
-    let library = store::load_library(&lib_path).map_err(|e| e.to_string())?;
-    let artifact = library
+    let mut library = store::load_library(&lib_path).map_err(|e| e.to_string())?;
+    let source_path = library
         .find_by_id(&id)
+        .map(|a| a.source_path.clone())
         .ok_or_else(|| format!("Artifact が見つかりません: {id}"))?;
-    std::fs::read_to_string(&artifact.source_path)
-        .map_err(|e| format!("ファイル読み込みに失敗しました: {e}"))
+
+    let content = std::fs::read_to_string(&source_path)
+        .map_err(|e| format!("ファイル読み込みに失敗しました: {e}"))?;
+
+    // 「開いた」事実を記録する。isRead（自己申告）には触れない。
+    let now = Utc::now().to_rfc3339();
+    store::touch_opened_at(&mut library, &id, &now);
+    if let Err(e) = store::save_library(&lib_path, &library) {
+        // openedAt の保存失敗はプレビュー表示自体を止めるほどではない。ログだけにする。
+        eprintln!("warning: failed to persist openedAt: {e}");
+    }
+
+    Ok(content)
 }
 
 #[tauri::command]
