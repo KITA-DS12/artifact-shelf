@@ -3,6 +3,7 @@ pub mod edit;
 pub mod files;
 pub mod import;
 pub mod search;
+pub mod settings;
 pub mod store;
 
 use chrono::Utc;
@@ -14,6 +15,11 @@ use tauri_plugin_opener::OpenerExt;
 fn library_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     let dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
     Ok(dir.join("library.json"))
+}
+
+fn settings_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+    let dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    Ok(dir.join("settings.json"))
 }
 
 /// 旧 bundle identifier (com.kita.artifact-shelf) で書かれていた library.json を
@@ -226,6 +232,36 @@ fn delete_artifacts(app: tauri::AppHandle, ids: Vec<String>) -> Result<usize, St
 }
 
 #[tauri::command]
+fn load_settings(app: tauri::AppHandle) -> Result<settings::Settings, String> {
+    settings::load_settings(&settings_path(&app)?)
+}
+
+#[tauri::command]
+fn save_settings(
+    app: tauri::AppHandle,
+    settings: settings::Settings,
+) -> Result<(), String> {
+    settings::save_settings(&settings_path(&app)?, &settings)
+}
+
+#[tauri::command]
+fn scan_and_import_inbox(
+    app: tauri::AppHandle,
+) -> Result<import::ImportResult, String> {
+    let s = settings::load_settings(&settings_path(&app)?)?;
+    let inbox = s
+        .inbox_path
+        .ok_or_else(|| "Inbox フォルダが設定されていません".to_string())?;
+    let dir = std::path::PathBuf::from(&inbox);
+    let paths = settings::scan_inbox(&dir).map_err(|e| e.to_string())?;
+    let lib_path = library_path(&app)?;
+    let mut library = store::load_library(&lib_path).map_err(|e| e.to_string())?;
+    let result = import::import_paths(&mut library, &paths);
+    store::save_library(&lib_path, &library).map_err(|e| e.to_string())?;
+    Ok(result)
+}
+
+#[tauri::command]
 fn relink_artifact(
     app: tauri::AppHandle,
     id: String,
@@ -370,7 +406,10 @@ pub fn run() {
             copy_to_clipboard,
             check_file_exists,
             check_missing_artifacts,
-            relink_artifact
+            relink_artifact,
+            load_settings,
+            save_settings,
+            scan_and_import_inbox
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

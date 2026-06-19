@@ -16,6 +16,10 @@ function mockLibrary(library: { version: number; artifacts: unknown[] }) {
   invokeMock.mockImplementation(async (cmd: string) => {
     if (cmd === "load_library") return library;
     if (cmd === "check_missing_artifacts") return [];
+    if (cmd === "load_settings") return { inboxPath: null };
+    if (cmd === "scan_and_import_inbox") {
+      return { added: [], skippedDuplicates: [], skippedUnsupported: [] };
+    }
     return undefined;
   });
 }
