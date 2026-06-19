@@ -5,16 +5,21 @@ import { findMatches } from "../lib/find-in-page";
 declare global {
   interface Window {
     Highlight: {
-      new (...ranges: Range[]): unknown;
+      new (...ranges: Range[]): HighlightInstance;
     };
   }
   interface CSS {
     highlights?: {
-      set(name: string, highlight: unknown): void;
+      set(name: string, highlight: HighlightInstance): void;
       delete(name: string): boolean;
       clear?(): void;
     };
   }
+}
+
+interface HighlightInstance {
+  add(range: Range): void;
+  clear(): void;
 }
 
 const HL_ALL = "yomikura-find";
@@ -35,7 +40,7 @@ function deleteHighlight(name: string) {
 }
 
 function setHighlight(name: string, ranges: Range[]) {
-  // 必ず先に削除（ブラウザ実装によっては set だけだと残るケースがあるため）
+  // 必ず先に削除（ブラウザ実装によっては set だけだと残るケースがある）
   deleteHighlight(name);
   if (ranges.length === 0) return;
   const HighlightCtor = (window as { Highlight?: typeof Window.prototype.Highlight })
@@ -43,7 +48,9 @@ function setHighlight(name: string, ranges: Range[]) {
   const hi = getHighlights();
   if (!HighlightCtor || !hi) return;
   try {
-    const hl = new HighlightCtor(...ranges);
+    // spread だと大量 range で挙動が不安定な実装があるため add() でループ
+    const hl = new HighlightCtor();
+    ranges.forEach((r) => hl.add(r));
     hi.set(name, hl);
   } catch {
     /* noop */

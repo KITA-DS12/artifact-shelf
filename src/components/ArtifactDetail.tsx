@@ -58,22 +58,29 @@ export function ArtifactDetail({
   const htmlFind = useFindInIframe(htmlViewRef);
   const find = artifact.fileType === "html" ? htmlFind : markdownFind;
 
-  // Cmd+F / Ctrl+F でページ内検索を開く
+  const closeFind = useCallback(() => {
+    find.close();
+    setFindOpen(false);
+  }, [find]);
+
+  // Cmd+F で開く / Esc で閉じる（FindBar が開いてる間は Esc を奪って詳細を閉じない）
+  // capture phase にして、App.tsx の useKeyboardShortcuts より先に処理する
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "f") {
         e.preventDefault();
         setFindOpen(true);
+        return;
+      }
+      if (e.key === "Escape" && findOpen) {
+        e.preventDefault();
+        e.stopPropagation();
+        closeFind();
       }
     }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
-
-  function closeFind() {
-    find.close();
-    setFindOpen(false);
-  }
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [findOpen, closeFind]);
 
   useEffect(() => {
     if (missing) {
