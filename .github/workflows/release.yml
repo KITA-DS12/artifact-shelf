@@ -20,6 +20,9 @@ jobs:
           - platform: macos-latest
             args: "--target x86_64-apple-darwin"
             label: macos-x64
+          - platform: windows-latest
+            args: ""
+            label: windows-x64
     runs-on: ${{ matrix.platform }}
 
     steps:
@@ -49,9 +52,15 @@ jobs:
           releaseBody: |
             Artifact Shelf のリリース。
 
-            macOS で `.dmg` を開き、`Artifact Shelf.app` を Applications フォルダにドラッグしてください。
+            ## macOS
+            `.dmg` を開き、`Artifact Shelf.app` を Applications フォルダにドラッグしてください。
 
             > 初回起動時に「開発元が未確認です」警告が出る場合は、Finder で `.app` を右クリック → 開く で回避できます。
+
+            ## Windows
+            `.msi` または `.exe` を実行してインストールしてください。
+
+            > Microsoft Defender SmartScreen の警告が出る場合は「詳細情報」→「実行」で進めてください。
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
