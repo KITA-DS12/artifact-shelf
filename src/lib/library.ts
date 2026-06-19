@@ -6,7 +6,6 @@ import {
 } from "../types/artifact";
 import type { ImportResult } from "../types/import";
 import type { ArtifactUpdate } from "../types/edit";
-import type { Settings } from "../types/settings";
 
 export function emptyLibrary(): Library {
   return { version: CURRENT_SCHEMA_VERSION, artifacts: [] };
@@ -30,18 +29,6 @@ export async function readArtifactContent(id: string): Promise<string> {
 
 export async function searchInContents(query: string): Promise<string[]> {
   return invoke<string[]>("search_in_contents", { query });
-}
-
-export async function loadSettings(): Promise<Settings> {
-  return invoke<Settings>("load_settings");
-}
-
-export async function saveSettings(settings: Settings): Promise<void> {
-  await invoke("save_settings", { settings });
-}
-
-export async function scanAndImportInbox(): Promise<ImportResult> {
-  return invoke<ImportResult>("scan_and_import_inbox");
 }
 
 export async function updateArtifact(
