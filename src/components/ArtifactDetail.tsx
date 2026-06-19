@@ -9,13 +9,12 @@ import {
   openWithDefault,
   copyToClipboard,
   relinkArtifact,
-  loadScrollPosition,
-  saveScrollPosition,
 } from "../lib/library";
 import { MarkdownView } from "./MarkdownView";
 import { HtmlView, type HtmlViewHandle } from "./HtmlView";
 import { FindBar } from "./FindBar";
 import { useFindInPage } from "../hooks/useFindInPage";
+import { useFindInIframe } from "../hooks/useFindInIframe";
 import { generateToc, type TocEntry } from "../lib/toc";
 import { toDate } from "../lib/format";
 import { isRead } from "../lib/read-state";
@@ -55,34 +54,33 @@ export function ArtifactDetail({
   const [findOpen, setFindOpen] = useState(false);
   const markdownRef = useRef<HTMLDivElement>(null);
   const htmlViewRef = useRef<HtmlViewHandle>(null);
-  const find = useFindInPage(markdownRef);
+  const markdownFind = useFindInPage(markdownRef);
+  const htmlFind = useFindInIframe(htmlViewRef);
+  const find = artifact.fileType === "html" ? htmlFind : markdownFind;
 
-  // Cmd+F / Ctrl+F でページ内検索を開く
+  const closeFind = useCallback(() => {
+    find.close();
+    setFindOpen(false);
+  }, [find]);
+
+  // Cmd+F で開く / Esc で閉じる（FindBar が開いてる間は Esc を奪って詳細を閉じない）
+  // capture phase にして、App.tsx の useKeyboardShortcuts より先に処理する
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "f") {
         e.preventDefault();
         setFindOpen(true);
+        return;
+      }
+      if (e.key === "Escape" && findOpen) {
+        e.preventDefault();
+        e.stopPropagation();
+        closeFind();
       }
     }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
-
-  // 検索 query が変わるたび HtmlView 側にも転送
-  useEffect(() => {
-    if (artifact.fileType !== "html") return;
-    htmlViewRef.current?.setFindQuery(find.query);
-  }, [find.query, artifact.fileType]);
-
-  // FindBar を閉じたら HtmlView 側もクリア
-  function closeFind() {
-    find.close();
-    setFindOpen(false);
-    if (artifact.fileType === "html") {
-      htmlViewRef.current?.setFindQuery("");
-    }
-  }
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [findOpen, closeFind]);
 
   useEffect(() => {
     if (missing) {
@@ -107,41 +105,6 @@ export function ArtifactDetail({
     };
   }, [artifact.id, missing]);
 
-  // 保存されたスクロール位置を復元（state.kind が "ready" になった後）
-  useEffect(() => {
-    if (state.kind !== "ready") return;
-    let cancelled = false;
-    void loadScrollPosition(artifact.id).then((y) => {
-      if (cancelled || y === null) return;
-      // 画像 / iframe のレイアウト確定を待ってから移動
-      window.setTimeout(() => {
-        if (!cancelled) window.scrollTo({ top: y, behavior: "auto" });
-      }, 250);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [state.kind, artifact.id]);
-
-  // スクロール時に位置を debounce 保存
-  useEffect(() => {
-    if (missing || state.kind !== "ready") return;
-    const id = artifact.id;
-    let saveTimer: number | undefined;
-    function handleScroll() {
-      if (saveTimer) window.clearTimeout(saveTimer);
-      saveTimer = window.setTimeout(() => {
-        void saveScrollPosition(id, window.scrollY).catch(() => {});
-      }, 300);
-    }
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-      if (saveTimer) window.clearTimeout(saveTimer);
-      // unmount 時に最後の位置を即保存
-      void saveScrollPosition(id, window.scrollY).catch(() => {});
-    };
-  }, [artifact.id, missing, state.kind]);
 
   const patch = useCallback(
     async (partial: Partial<ArtifactUpdate>) => {
