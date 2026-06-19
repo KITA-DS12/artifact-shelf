@@ -156,6 +156,25 @@ fn open_with_default(app: tauri::AppHandle, path: String) -> Result<(), String> 
         .map_err(|e| e.to_string())
 }
 
+/// HTML プレビュー内の外部リンクをブラウザで開く。
+/// スキームは http / https のみ許可（mailto / javascript / data 等は拒否）。
+fn is_http_url(url: &str) -> bool {
+    let lower = url.to_ascii_lowercase();
+    lower.starts_with("http://") || lower.starts_with("https://")
+}
+
+#[tauri::command]
+fn open_external_url(app: tauri::AppHandle, url: String) -> Result<(), String> {
+    if !is_http_url(&url) {
+        return Err(format!(
+            "対応外の URL スキームです (http/https のみ): {url}"
+        ));
+    }
+    app.opener()
+        .open_url(url, None::<String>)
+        .map_err(|e| e.to_string())
+}
+
 #[tauri::command]
 fn copy_to_clipboard(app: tauri::AppHandle, text: String) -> Result<(), String> {
     app.clipboard().write_text(text).map_err(|e| e.to_string())
@@ -283,6 +302,28 @@ mod open_guard_tests {
         assert!(err.contains("/tmp/a.txt"));
         assert!(err.contains("対応外"));
     }
+
+    #[test]
+    fn http_urls_pass() {
+        assert!(is_http_url("http://example.com"));
+        assert!(is_http_url("https://example.com/path?query"));
+        assert!(is_http_url("HTTPS://Example.com")); // case insensitive
+    }
+
+    #[test]
+    fn non_http_schemes_rejected() {
+        for url in [
+            "mailto:a@b.com",
+            "javascript:alert(1)",
+            "data:text/html,<h1>x</h1>",
+            "file:///etc/passwd",
+            "ftp://example.com",
+            "/relative/path",
+            "",
+        ] {
+            assert!(!is_http_url(url), "{url} should be rejected");
+        }
+    }
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -300,6 +341,7 @@ pub fn run() {
             read_artifact_content,
             open_in_finder,
             open_with_default,
+            open_external_url,
             copy_to_clipboard,
             check_file_exists,
             check_missing_artifacts,
