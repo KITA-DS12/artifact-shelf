@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import type { Artifact } from "../types/artifact";
 import { toDate } from "../lib/format";
 import { isRead } from "../lib/read-state";
@@ -8,6 +9,8 @@ type Props = {
   missing?: boolean;
   selectMode?: boolean;
   selected?: boolean;
+  /** キーボードナビゲーションのフォーカス対象 */
+  focused?: boolean;
   onClick?: (artifact: Artifact) => void;
   onToggleSelect?: (artifact: Artifact) => void;
 };
@@ -17,9 +20,20 @@ export function ArtifactCard({
   missing,
   selectMode,
   selected,
+  focused,
   onClick,
   onToggleSelect,
 }: Props) {
+  const ref = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (!focused || !ref.current) return;
+    ref.current.focus({ preventScroll: true });
+    if (typeof ref.current.scrollIntoView === "function") {
+      ref.current.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+  }, [focused]);
+
   const handleClick = () => {
     if (selectMode) onToggleSelect?.(artifact);
     else onClick?.(artifact);
@@ -27,7 +41,8 @@ export function ArtifactCard({
 
   return (
     <article
-      className={`artifact-card${isRead(artifact) ? "" : " is-unread"}${missing ? " is-missing" : ""}${selectMode ? " is-selectable" : ""}${selected ? " is-selected" : ""}`}
+      ref={ref}
+      className={`artifact-card${isRead(artifact) ? "" : " is-unread"}${missing ? " is-missing" : ""}${selectMode ? " is-selectable" : ""}${selected ? " is-selected" : ""}${focused ? " is-focused" : ""}`}
       onClick={handleClick}
       role="button"
       tabIndex={0}

@@ -14,6 +14,7 @@ import {
 import { applyFilter, collectAllTags } from "./lib/filter";
 import { sortArtifacts } from "./lib/sort";
 import { useDragDropImport } from "./hooks/useDragDropImport";
+import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import type { Artifact, Library } from "./types/artifact";
 import {
   DEFAULT_FILTER,
@@ -35,6 +36,7 @@ function App() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [deleteTargets, setDeleteTargets] = useState<string[] | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [focusedIndex, setFocusedIndex] = useState(0);
 
   const reload = useCallback(async () => {
     try {
@@ -69,6 +71,36 @@ function App() {
     () => sortArtifacts(applyFilter(library.artifacts, filter), sortKey),
     [library.artifacts, filter, sortKey],
   );
+
+  // filtered の長さが縮んだら focused を clamp
+  useEffect(() => {
+    setFocusedIndex((i) => {
+      if (filtered.length === 0) return 0;
+      return Math.min(i, filtered.length - 1);
+    });
+  }, [filtered.length]);
+
+  const focusedArtifact = filtered[focusedIndex] ?? null;
+
+  useKeyboardShortcuts({
+    onNext: () => {
+      if (selectedId !== null) return; // 詳細画面では別途 Issue #65 で扱う
+      setFocusedIndex((i) => Math.min(i + 1, Math.max(0, filtered.length - 1)));
+    },
+    onPrev: () => {
+      if (selectedId !== null) return;
+      setFocusedIndex((i) => Math.max(i - 1, 0));
+    },
+    onSearch: () => {
+      if (selectedId !== null) return;
+      const input = document.querySelector<HTMLInputElement>(".search-input");
+      input?.focus();
+      input?.select();
+    },
+    onEscape: () => {
+      if (selectedId !== null) setSelectedId(null);
+    },
+  });
 
   const selected =
     selectedId !== null
@@ -225,6 +257,7 @@ function App() {
             missingIds={missingIds}
             selectMode={selectMode}
             selectedIds={selectedIds}
+            focusedId={focusedArtifact?.id ?? null}
             onSelect={(a) => setSelectedId(a.id)}
             onToggleSelect={toggleSelect}
           />

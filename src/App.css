@@ -719,6 +719,11 @@ a:hover {
   border-color: var(--indigo);
 }
 
+.artifact-card.is-focused {
+  outline: 2px solid var(--indigo);
+  outline-offset: 2px;
+}
+
 .select-checkbox {
   position: absolute;
   top: 14px;
