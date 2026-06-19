@@ -11,7 +11,7 @@ function setup(overrides: { filter?: Partial<LibraryFilter> } = {}) {
     <LibraryToolbar
       filter={{ ...DEFAULT_FILTER, ...overrides.filter }}
       onFilterChange={onFilterChange}
-      sortKey="unread-then-generated-desc"
+      sortKey="unread-then-captured-desc"
       onSortChange={onSortChange}
       availableTags={["review", "auth"]}
       totalCount={10}

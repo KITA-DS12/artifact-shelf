@@ -26,7 +26,7 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<LibraryFilter>(DEFAULT_FILTER);
-  const [sortKey, setSortKey] = useState<SortKey>("unread-then-generated-desc");
+  const [sortKey, setSortKey] = useState<SortKey>("unread-then-captured-desc");
   const [missingIds, setMissingIds] = useState<ReadonlySet<string>>(
     () => new Set(),
   );

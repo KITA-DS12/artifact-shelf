@@ -1,10 +1,9 @@
-import type { FileType, Source } from "./artifact";
+import type { FileType } from "./artifact";
 
 export type SortKey =
-  | "unread-then-generated-desc"
-  | "generated-desc"
-  | "generated-asc"
-  | "imported-desc"
+  | "unread-then-captured-desc"
+  | "captured-desc"
+  | "captured-asc"
   | "updated-desc"
   | "title-asc"
   | "favorite-first";
@@ -17,9 +16,10 @@ export interface LibraryFilter {
   fileTypes: FileType[];
   readState: ReadState;
   favoriteOnly: boolean;
-  sources: Source[];
-  generatedFrom: string | null;
-  generatedTo: string | null;
+  /** 取り込み日の下限 (YYYY-MM-DD) */
+  capturedFrom: string | null;
+  /** 取り込み日の上限 (YYYY-MM-DD) */
+  capturedTo: string | null;
 }
 
 export const DEFAULT_FILTER: LibraryFilter = {
@@ -28,17 +28,15 @@ export const DEFAULT_FILTER: LibraryFilter = {
   fileTypes: [],
   readState: "all",
   favoriteOnly: false,
-  sources: [],
-  generatedFrom: null,
-  generatedTo: null,
+  capturedFrom: null,
+  capturedTo: null,
 };
 
 export const SORT_LABELS: Record<SortKey, string> = {
-  "unread-then-generated-desc": "未読優先 / 生成日新しい順",
-  "generated-desc": "生成日 新しい順",
-  "generated-asc": "生成日 古い順",
-  "imported-desc": "取り込み日 新しい順",
-  "updated-desc": "更新日 新しい順",
+  "unread-then-captured-desc": "未読優先 / 取り込み新しい順",
+  "captured-desc": "取り込み 新しい順",
+  "captured-asc": "取り込み 古い順",
+  "updated-desc": "更新 新しい順",
   "title-asc": "タイトル順",
   "favorite-first": "お気に入り優先",
 };

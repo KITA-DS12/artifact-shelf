@@ -8,7 +8,13 @@ export interface Artifact {
   sourcePath: string;
   fileType: FileType;
   tags: string[];
-  generatedAt: string;
+  /** 取り込み時刻（ISO8601）。ライブラリ上の年表の基準。 */
+  capturedAt: string;
+  /**
+   * ファイル本来の生成日。frontmatter / `<title>` / 先頭 `#` 見出しから抽出できた
+   * 場合にのみ入る。検出できない場合は null（mtime からの推定は行わない）。
+   */
+  generatedAt: string | null;
   importedAt: string;
   updatedAt: string;
   isRead: boolean;

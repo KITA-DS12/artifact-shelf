@@ -13,6 +13,7 @@ import {
 import { MarkdownView } from "./MarkdownView";
 import { HtmlView } from "./HtmlView";
 import { generateToc, type TocEntry } from "../lib/toc";
+import { toDate } from "../lib/format";
 import { CrossIcon, PencilIcon, PlusIcon, StarIcon } from "./icons";
 
 type Props = {
@@ -130,7 +131,13 @@ export function ArtifactDetail({
           <span className={`type-badge type-${artifact.fileType}`}>
             {artifact.fileType === "markdown" ? "Markdown" : "HTML"}
           </span>
-          <span>{artifact.generatedAt}</span>
+          <span>取り込み {toDate(artifact.capturedAt)}</span>
+          {artifact.generatedAt && (
+            <>
+              <span className="dot">·</span>
+              <span>生成 {artifact.generatedAt}</span>
+            </>
+          )}
           <button
             type="button"
             className={`read-pill ${artifact.isRead ? "is-read" : "is-unread"}`}

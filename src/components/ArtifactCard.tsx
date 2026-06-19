@@ -1,4 +1,5 @@
 import type { Artifact } from "../types/artifact";
+import { toDate } from "../lib/format";
 import { StarIcon } from "./icons";
 
 type Props = {
@@ -66,7 +67,7 @@ export function ArtifactCard({
         </ul>
       )}
       <div className="artifact-card-meta">
-        <span>{artifact.generatedAt}</span>
+        <span>取り込み {toDate(artifact.capturedAt)}</span>
       </div>
     </article>
   );

@@ -23,10 +23,9 @@ type Props = {
 
 const FILE_TYPES: FileType[] = ["markdown", "html"];
 const SORT_KEYS: SortKey[] = [
-  "unread-then-generated-desc",
-  "generated-desc",
-  "generated-asc",
-  "imported-desc",
+  "unread-then-captured-desc",
+  "captured-desc",
+  "captured-asc",
   "updated-desc",
   "title-asc",
   "favorite-first",
@@ -199,16 +198,16 @@ export function LibraryToolbar({
           </fieldset>
 
           <fieldset>
-            <legend>生成日</legend>
+            <legend>取り込み日</legend>
             <label>
               <span className="filter-sub">From</span>
               <input
                 type="date"
-                value={filter.generatedFrom ?? ""}
+                value={filter.capturedFrom ?? ""}
                 onChange={(e) =>
                   onFilterChange({
                     ...filter,
-                    generatedFrom: e.target.value || null,
+                    capturedFrom: e.target.value || null,
                   })
                 }
               />
@@ -217,11 +216,11 @@ export function LibraryToolbar({
               <span className="filter-sub">To</span>
               <input
                 type="date"
-                value={filter.generatedTo ?? ""}
+                value={filter.capturedTo ?? ""}
                 onChange={(e) =>
                   onFilterChange({
                     ...filter,
-                    generatedTo: e.target.value || null,
+                    capturedTo: e.target.value || null,
                   })
                 }
               />

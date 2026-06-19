@@ -30,7 +30,14 @@ pub struct Artifact {
     pub source_path: String,
     pub file_type: FileType,
     pub tags: Vec<String>,
-    pub generated_at: String,
+    /// 取り込み時刻（不変）。ライブラリ上の年表の基準となる時刻。
+    #[serde(default)]
+    pub captured_at: String,
+    /// ファイル本来の生成日。frontmatter / `<title>` / 最初の `#` 見出しから抽出できた
+    /// ときだけ入れる。検出できなければ None。ファイル mtime からの推定は行わない
+    /// （編集して保存しただけで年表が後ろに動く罠を避けるため）。
+    #[serde(default)]
+    pub generated_at: Option<String>,
     pub imported_at: String,
     pub updated_at: String,
     pub is_read: bool,
@@ -80,7 +87,15 @@ pub fn load_library(path: &Path) -> Result<Library, StoreError> {
         return Ok(Library::empty());
     }
     let content = fs::read_to_string(path).map_err(|e| StoreError::Io(e.to_string()))?;
-    serde_json::from_str(&content).map_err(|e| StoreError::Parse(e.to_string()))
+    let mut library: Library =
+        serde_json::from_str(&content).map_err(|e| StoreError::Parse(e.to_string()))?;
+    // 旧フォーマットでは captured_at が無い。imported_at で埋める。
+    for a in &mut library.artifacts {
+        if a.captured_at.is_empty() {
+            a.captured_at = a.imported_at.clone();
+        }
+    }
+    Ok(library)
 }
 
 fn tmp_path(path: &Path) -> PathBuf {
@@ -140,7 +155,8 @@ mod tests {
             source_path: "/tmp/review.md".into(),
             file_type: FileType::Markdown,
             tags: vec!["review".into(), "auth".into()],
-            generated_at: "2026-06-18".into(),
+            captured_at: "2026-06-18T10:00:00+09:00".into(),
+            generated_at: Some("2026-06-18".into()),
             imported_at: "2026-06-18T10:00:00+09:00".into(),
             updated_at: "2026-06-18T10:00:00+09:00".into(),
             is_read: false,
@@ -277,6 +293,64 @@ mod tests {
         // 本体側を読みに行くので壊れていないこと
         let loaded = load_library(&path).unwrap();
         assert_eq!(loaded, Library::empty());
+    }
+
+    #[test]
+    fn load_fills_captured_at_from_imported_at_for_old_format() {
+        // capturedAt フィールドが無い旧フォーマットの JSON を読む。
+        let tmp = TempDir::new().unwrap();
+        let path = tmp.path().join("library.json");
+        let old_json = r#"{
+            "version": 1,
+            "artifacts": [{
+                "id": "old1",
+                "title": "旧",
+                "sourcePath": "/tmp/a.md",
+                "fileType": "markdown",
+                "tags": [],
+                "generatedAt": "2026-06-10",
+                "importedAt": "2026-06-18T10:00:00+09:00",
+                "updatedAt": "2026-06-18T10:00:00+09:00",
+                "isRead": false,
+                "isFavorite": false,
+                "source": "Unknown",
+                "note": ""
+            }]
+        }"#;
+        fs::write(&path, old_json).unwrap();
+
+        let loaded = load_library(&path).unwrap();
+        let a = &loaded.artifacts[0];
+        assert_eq!(a.captured_at, "2026-06-18T10:00:00+09:00");
+        assert_eq!(a.generated_at.as_deref(), Some("2026-06-10"));
+    }
+
+    #[test]
+    fn load_keeps_generated_at_none_when_missing() {
+        // generatedAt も無い JSON は Option::None
+        let tmp = TempDir::new().unwrap();
+        let path = tmp.path().join("library.json");
+        let json = r#"{
+            "version": 1,
+            "artifacts": [{
+                "id": "x",
+                "title": "x",
+                "sourcePath": "/tmp/a.md",
+                "fileType": "markdown",
+                "tags": [],
+                "importedAt": "2026-06-18T10:00:00Z",
+                "updatedAt": "2026-06-18T10:00:00Z",
+                "isRead": false,
+                "isFavorite": false,
+                "source": "Unknown",
+                "note": ""
+            }]
+        }"#;
+        fs::write(&path, json).unwrap();
+
+        let loaded = load_library(&path).unwrap();
+        assert!(loaded.artifacts[0].generated_at.is_none());
+        assert_eq!(loaded.artifacts[0].captured_at, "2026-06-18T10:00:00Z");
     }
 
     #[test]
