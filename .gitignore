@@ -30,3 +30,7 @@ src-tauri/gen
 # Test / coverage
 coverage
 .vitest-cache
+
+# Local-only docs (review outputs, ad-hoc artifacts)
+# 公式ドキュメントを置く場合は個別に -f で add する
+docs/
