@@ -27,7 +27,7 @@
     "active": true,
     "targets": "all",
     "publisher": "KITA-DS12",
-    "homepage": "https://github.com/KITA-DS12/artifact-shelf",
+    "homepage": "https://github.com/KITA-DS12/yomikura",
     "shortDescription": "読み蔵 — Markdown / HTML 生成物のローカル書庫",
     "longDescription": "Markdown と HTML の AI 生成物を、ローカルでタグ付け・整理・閲覧するためのデスクトップ書庫アプリ。",
     "license": "MIT",
@@ -38,6 +38,9 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "macOS": {
+      "signingIdentity": "-"
+    }
   }
 }
