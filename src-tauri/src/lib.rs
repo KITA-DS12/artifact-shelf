@@ -2,6 +2,7 @@ pub mod delete;
 pub mod edit;
 pub mod files;
 pub mod import;
+pub mod positions;
 pub mod search;
 pub mod store;
 
@@ -14,6 +15,11 @@ use tauri_plugin_opener::OpenerExt;
 fn library_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     let dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
     Ok(dir.join("library.json"))
+}
+
+fn positions_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+    let dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    Ok(dir.join("positions.json"))
 }
 
 /// 旧 bundle identifier (com.kita.artifact-shelf) で書かれていた library.json を
@@ -226,6 +232,24 @@ fn delete_artifacts(app: tauri::AppHandle, ids: Vec<String>) -> Result<usize, St
 }
 
 #[tauri::command]
+fn load_scroll_position(
+    app: tauri::AppHandle,
+    id: String,
+) -> Result<Option<f64>, String> {
+    let p = positions::load_positions(&positions_path(&app)?).unwrap_or_default();
+    Ok(p.get(&id).copied())
+}
+
+#[tauri::command]
+fn save_scroll_position(
+    app: tauri::AppHandle,
+    id: String,
+    position: f64,
+) -> Result<(), String> {
+    positions::save_position_for(&positions_path(&app)?, &id, position)
+}
+
+#[tauri::command]
 fn relink_artifact(
     app: tauri::AppHandle,
     id: String,
@@ -370,7 +394,9 @@ pub fn run() {
             copy_to_clipboard,
             check_file_exists,
             check_missing_artifacts,
-            relink_artifact
+            relink_artifact,
+            load_scroll_position,
+            save_scroll_position
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
