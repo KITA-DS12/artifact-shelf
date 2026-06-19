@@ -20,7 +20,7 @@ describe("HtmlView", () => {
     const srcdoc = frame.getAttribute("srcdoc") ?? "";
     expect(srcdoc).toContain("YOMIKURA_RESIZE");
     expect(srcdoc).toContain("YOMIKURA_OPEN_EXTERNAL");
-    expect(srcdoc).toContain("scrollIntoView");
+    expect(srcdoc).toContain("YOMIKURA_SCROLL_TO");
     expect(srcdoc).toContain("preventDefault");
     expect(srcdoc).toContain("<p>x</p>");
   });
